@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Hospital } from "@/types";
+import { Hospital, HospitalContact } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch"; // Assuming you have a Switch or similar
+import { Plus, Trash2 } from "lucide-react";
 
 interface HospitalFormProps {
     onSubmit: (hospital: Omit<Hospital, "id" | "createdAt">) => void;
@@ -16,8 +19,10 @@ interface HospitalFormProps {
 export function HospitalForm({ onSubmit, onCancel, initialData }: HospitalFormProps) {
     const [formData, setFormData] = useState<Omit<Hospital, "id" | "createdAt">>({
         name: initialData?.name || "",
-        phone: initialData?.phone || "",
-        email: initialData?.email || "",
+        contacts: initialData?.contacts || [
+            { id: "temp-1", type: "phone", value: "", label: "Principal", isPrimary: true },
+            { id: "temp-2", type: "email", value: "", label: "Principal", isPrimary: true }
+        ],
 
         // Address
         cep: initialData?.cep || "",
@@ -37,6 +42,54 @@ export function HospitalForm({ onSubmit, onCancel, initialData }: HospitalFormPr
     ) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
+    };
+
+    // Contact Handlers
+    const addContact = () => {
+        setFormData(prev => ({
+            ...prev,
+            contacts: [
+                ...prev.contacts,
+                {
+                    id: Math.random().toString(36).substr(2, 9),
+                    type: "phone",
+                    value: "",
+                    label: "",
+                    isPrimary: false
+                }
+            ]
+        }));
+    };
+
+    const removeContact = (id: string) => {
+        setFormData(prev => ({
+            ...prev,
+            contacts: prev.contacts.filter(c => c.id !== id)
+        }));
+    };
+
+    const updateContact = (id: string, field: keyof HospitalContact, value: any) => {
+        setFormData(prev => ({
+            ...prev,
+            contacts: prev.contacts.map(c => {
+                if (c.id === id) {
+                    return { ...c, [field]: value };
+                }
+                return c;
+            })
+        }));
+    };
+
+    const setPrimaryContact = (type: 'phone' | 'email', id: string) => {
+        setFormData(prev => ({
+            ...prev,
+            contacts: prev.contacts.map(c => {
+                if (c.type === type) {
+                    return { ...c, isPrimary: c.id === id };
+                }
+                return c;
+            })
+        }));
     };
 
     const handleCepBlur = async () => {
@@ -80,8 +133,8 @@ export function HospitalForm({ onSubmit, onCancel, initialData }: HospitalFormPr
                 <h3 className="font-semibold text-lg flex items-center gap-2">
                     Dados do Hospital
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2 md:col-span-2">
+                <div className="grid grid-cols-1 gap-4">
+                    <div className="space-y-2">
                         <Label htmlFor="name">Nome do Hospital</Label>
                         <Input
                             id="name"
@@ -94,26 +147,67 @@ export function HospitalForm({ onSubmit, onCancel, initialData }: HospitalFormPr
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="phone">Telefone</Label>
-                        <Input
-                            id="phone"
-                            name="phone"
-                            placeholder="(00) 00000-0000"
-                            value={formData.phone}
-                            onChange={handleChange}
-                            required
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="email">Email (Opcional)</Label>
-                        <Input
-                            id="email"
-                            name="email"
-                            type="email"
-                            placeholder="contato@hospital.com"
-                            value={formData.email}
-                            onChange={handleChange}
-                        />
+                        <Label>Contatos</Label>
+                        <div className="space-y-3">
+                            {formData.contacts.map((contact) => (
+                                <div key={contact.id} className="flex flex-col md:flex-row gap-2 items-start md:items-center border p-3 rounded-md bg-muted/20">
+                                    <div className="w-full md:w-32">
+                                        <Select
+                                            value={contact.type}
+                                            onValueChange={(val) => updateContact(contact.id, "type", val)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="phone">Telefone</SelectItem>
+                                                <SelectItem value="email">Email</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="flex-1 w-full">
+                                        <Input
+                                            placeholder={contact.type === "phone" ? "(00) 00000-0000" : "email@exemplo.com"}
+                                            value={contact.value}
+                                            onChange={(e) => updateContact(contact.id, "value", e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="w-full md:w-40">
+                                        <Input
+                                            placeholder="Rótulo (ex: Comercial)"
+                                            value={contact.label || ""}
+                                            onChange={(e) => updateContact(contact.id, "label", e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div
+                                            className={`cursor-pointer px-2 py-1 rounded text-xs font-medium border ${contact.isPrimary
+                                                ? "bg-primary text-primary-foreground border-primary"
+                                                : "bg-background text-muted-foreground border-input hover:bg-accent"
+                                                }`}
+                                            onClick={() => setPrimaryContact(contact.type, contact.id)}
+                                            title="Definir como principal para este tipo"
+                                        >
+                                            {contact.isPrimary ? "Principal" : "Tornar Principal"}
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-destructive hover:text-destructive/90"
+                                            onClick={() => removeContact(contact.id)}
+                                            disabled={formData.contacts.length <= 1}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                            <Button type="button" variant="outline" size="sm" onClick={addContact} className="mt-2">
+                                <Plus className="h-4 w-4 mr-2" /> Adicionar Contato
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>

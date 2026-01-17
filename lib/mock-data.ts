@@ -188,8 +188,10 @@ export const MOCK_HOSPITALS: Hospital[] = [
     {
         id: "1",
         name: "Hospital Santa Casa de Misericórdia",
-        phone: "(11) 3224-0000",
-        email: "contato@santacasasp.org.br",
+        contacts: [
+            { id: "1", type: "phone" as const, value: "(11) 3224-0000", label: "Geral", isPrimary: true },
+            { id: "2", type: "email" as const, value: "contato@santacasasp.org.br", label: "Contato", isPrimary: true }
+        ],
         cep: "01221-020",
         street: "R. Dr. Cesário Mota Jr.",
         number: "112",
@@ -203,8 +205,10 @@ export const MOCK_HOSPITALS: Hospital[] = [
     {
         id: "2",
         name: "Hospital Albert Einstein",
-        phone: "(11) 2151-1233",
-        email: "atendimento@einstein.br",
+        contacts: [
+            { id: "3", type: "phone" as const, value: "(11) 2151-1233", label: "Atendimento", isPrimary: true },
+            { id: "4", type: "email" as const, value: "atendimento@einstein.br", label: "SAC", isPrimary: true }
+        ],
         cep: "05652-900",
         street: "Av. Albert Einstein",
         number: "627",
@@ -218,8 +222,10 @@ export const MOCK_HOSPITALS: Hospital[] = [
     {
         id: "3",
         name: "Hospital Sírio-Libanês",
-        phone: "(11) 3394-0200",
-        email: "sac@sirio-libanes.org.br",
+        contacts: [
+            { id: "5", type: "phone", value: "(11) 3394-0200", label: "Central", isPrimary: true },
+            { id: "6", type: "email", value: "sac@sirio-libanes.org.br", label: "SAC", isPrimary: true }
+        ],
         cep: "01308-050",
         street: "Rua Dona Adma Jafet",
         number: "91",
@@ -233,8 +239,10 @@ export const MOCK_HOSPITALS: Hospital[] = [
     ...Array.from({ length: 50 }).map((_, i) => ({
         id: `mock-${i + 4}`,
         name: `Hospital Geral ${i + 1}`,
-        phone: `(11) 3000-${(1000 + i).toString().slice(1)}`,
-        email: `contato@hospitalgeral${i + 1}.com.br`,
+        contacts: [
+            { id: `c-${i}-1`, type: "phone" as const, value: `(11) 3000-${(1000 + i).toString().slice(1)}`, label: "Geral", isPrimary: true },
+            { id: `c-${i}-2`, type: "email" as const, value: `contato@hospitalgeral${i + 1}.com.br`, label: "Contato", isPrimary: true }
+        ],
         cep: `0${1000 + i * 10}-000`,
         street: `Rua Exemplo ${i + 1}`,
         number: `${(i + 1) * 10}`,

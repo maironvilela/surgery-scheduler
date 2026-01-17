@@ -86,22 +86,6 @@ export default function HospitalDetailsPage() {
                     </CardHeader>
                     <CardContent className="space-y-6">
                         <section className="space-y-3">
-                            <h3 className="font-semibold text-lg border-b pb-2">Contato</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                    <Phone className="h-4 w-4" />
-                                    <span>{hospital.phone}</span>
-                                </div>
-                                {hospital.email && (
-                                    <div className="flex items-center gap-2 text-muted-foreground">
-                                        <Mail className="h-4 w-4" />
-                                        <span>{hospital.email}</span>
-                                    </div>
-                                )}
-                            </div>
-                        </section>
-
-                        <section className="space-y-3">
                             <h3 className="font-semibold text-lg border-b pb-2">Endereço</h3>
                             <div className="space-y-2 text-muted-foreground">
                                 <div className="flex items-start gap-2">
@@ -118,6 +102,26 @@ export default function HospitalDetailsPage() {
                                         <span className="font-medium">Ponto de referência:</span> {hospital.referencePoint}
                                     </div>
                                 )}
+                            </div>
+                        </section>
+
+                        <section className="space-y-3">
+                            <h3 className="font-semibold text-lg border-b pb-2">Contato</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {hospital.contacts
+                                    .sort((a, b) => {
+                                        if (a.type === b.type) return 0;
+                                        return a.type === 'phone' ? -1 : 1;
+                                    })
+                                    .map((contact) => (
+                                        <div key={contact.id} className="flex items-center gap-2 text-muted-foreground">
+                                            {contact.type === 'phone' ? <Phone className="h-4 w-4" /> : <Mail className="h-4 w-4" />}
+                                            <div className="flex flex-col">
+                                                <span>{contact.value}</span>
+                                                {contact.label && <span className="text-xs opacity-70">{contact.label} {contact.isPrimary && "(Principal)"}</span>}
+                                            </div>
+                                        </div>
+                                    ))}
                             </div>
                         </section>
                     </CardContent>

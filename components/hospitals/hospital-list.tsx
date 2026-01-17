@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Hospital } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Phone, Building2 } from "lucide-react";
+import { MapPin, Phone, Building2, Mail } from "lucide-react";
 import Link from "next/link";
 
 interface HospitalListProps {
@@ -40,46 +40,62 @@ export function HospitalList({ hospitals }: HospitalListProps) {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 w-full">
-                {currentItems.map((hospital) => (
-                    <Card key={hospital.id} className="overflow-hidden hover:shadow-lg transition-shadow h-full">
-                        <CardContent className="p-0">
-                            <div className="p-4 space-y-4">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <h3 className="font-semibold text-lg">{hospital.name}</h3>
-                                        <div className="flex items-center text-sm text-muted-foreground mt-1">
-                                            <MapPin className="h-3 w-3 mr-1" />
-                                            {hospital.city} - {hospital.state}
-                                        </div>
-                                    </div>
-                                </div>
+                {currentItems.map((hospital) => {
+                    const primaryPhone = hospital.contacts.find(c => c.type === "phone" && c.isPrimary)?.value || hospital.contacts.find(c => c.type === "phone")?.value || "Sem telefone";
+                    const primaryEmail = hospital.contacts.find(c => c.type === "email" && c.isPrimary)?.value;
 
-                                <div className="space-y-2 text-sm">
-                                    <div className="flex items-center text-muted-foreground bg-muted/30 p-2 rounded-md">
-                                        <Phone className="h-4 w-4 mr-2" />
-                                        {hospital.phone}
+                    return (
+                        <Card key={hospital.id} className="overflow-hidden hover:shadow-lg transition-shadow h-full">
+                            <CardContent className="p-0">
+                                <div className="p-4 space-y-4">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h3 className="font-semibold text-lg">{hospital.name}</h3>
+                                            <div className="flex items-center text-sm text-muted-foreground mt-1">
+                                                <MapPin className="h-3 w-3 mr-1" />
+                                                {hospital.city} - {hospital.state}
+                                            </div>
+                                        </div>
+
+
+
                                     </div>
+
                                     <div className="text-muted-foreground px-2">
                                         {hospital.street}, {hospital.number}
                                         {hospital.neighborhood && ` - ${hospital.neighborhood}`}
                                     </div>
-                                </div>
 
-                                <div className="pt-2 border-t mt-4">
-                                    <Link href={`/hospitais/${hospital.id}`} className="w-full block">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="w-full"
-                                        >
-                                            Detalhes
-                                        </Button>
-                                    </Link>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex items-center text-muted-foreground bg-muted/30 p-2 rounded-md">
+                                            <Phone className="h-4 w-4 mr-2" />
+                                            {primaryPhone}
+                                        </div>
+                                        {primaryEmail && (
+                                            <div className="flex items-center text-muted-foreground bg-muted/30 p-2 rounded-md">
+                                                <Mail className="h-4 w-4 mr-2" />
+                                                {primaryEmail}
+                                            </div>
+                                        )}
+
+                                    </div>
+
+                                    <div className="pt-2 border-t mt-4">
+                                        <Link href={`/hospitais/${hospital.id}`} className="w-full block">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="w-full"
+                                            >
+                                                Detalhes
+                                            </Button>
+                                        </Link>
+                                    </div>
                                 </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
+                            </CardContent>
+                        </Card>
+                    );
+                })}
             </div>
 
             {hasMore && (

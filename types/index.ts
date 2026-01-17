@@ -29,6 +29,14 @@ export interface Doctor {
     updatedAt: string;
 }
 
+export interface HospitalContact {
+    id: string;
+    type: 'phone' | 'email';
+    value: string;
+    label?: string; // e.g. "Comercial", "Financeiro"
+    isPrimary: boolean;
+}
+
 export interface Hospital {
     id: string;
     name: string;
@@ -41,8 +49,7 @@ export interface Hospital {
     city: string;
     state: string;
     referencePoint: string; // Ponto de referência
-    phone: string;
-    email?: string;
+    contacts: HospitalContact[];
     createdAt: string;
 }
 
@@ -113,4 +120,13 @@ export interface Procedure {
 
     createdAt: string;
     updatedAt: string;
+}
+
+export interface ConsultationItem {
+    id: string;
+    patientName: string;
+    phone?: string;
+    status: string;
+    time: string;
+    whatsappSent?: boolean;
 }

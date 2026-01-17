@@ -83,7 +83,7 @@ export default function ProceduresPage() {
                                     />
                                 </SheetContent>
                             </Sheet>
-                            <Button onClick={() => setIsFormOpen(true)} className="shrink-0">
+                            <Button onClick={() => setIsFormOpen(true)} className="shrink-0 bg-blue-500 hover:bg-blue-600">
                                 <Plus className="mr-2 h-4 w-4" /> Novo Procedimento
                             </Button>
                         </div>

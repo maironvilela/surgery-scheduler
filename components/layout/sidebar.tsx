@@ -13,11 +13,13 @@ import {
     Settings,
     Building2,
     Activity,
+    MessageCircle,
 } from "lucide-react";
 
 const navItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard },
     { href: "/agenda", label: "Agenda", icon: CalendarDays },
+    { href: "/consultas", label: "Consultas", icon: MessageCircle },
     { href: "/pacientes", label: "Pacientes", icon: Users },
     { href: "/medicos", label: "Médicos", icon: Stethoscope },
     { href: "/hospitais", label: "Hospitais", icon: Building2 },
