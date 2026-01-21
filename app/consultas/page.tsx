@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -11,7 +11,10 @@ import {
     MessageCircle,
     Plus,
     Trash2,
-    Pencil
+    Pencil,
+    FileText,
+    Loader2,
+    Upload
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -42,7 +45,7 @@ import { toast } from "sonner";
 export default function ConsultasPage() {
     const { doctors } = useDoctors();
     const { hospitals } = useHospitals();
-    const { patients: availablePatients, addPatient } = usePatients();
+    const { patients: availablePatients, addPatient, updatePatient } = usePatients();
 
     // Form States
     const [selectedDoctorId, setSelectedDoctorId] = useState<string>("");
@@ -101,6 +104,8 @@ export default function ConsultasPage() {
     const [whatsAppMessage, setWhatsAppMessage] = useState("");
     const [patientToMessage, setPatientToMessage] = useState<ConsultationItem | null>(null);
     const [isSending, setIsSending] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Actions
     const handleSelectPatient = (patient: any) => {
@@ -126,13 +131,44 @@ export default function ConsultasPage() {
     const handleAddPatient = () => {
         if (!newPatientName || !newPatientTime) return;
 
+        const cleanPhone = newPatientPhone.replace(/\D/g, "");
+
+        // Sync with global patient registry
+        const existingPatient = availablePatients.find(
+            p => p.name.toLowerCase() === newPatientName.toLowerCase()
+        );
+
+        if (existingPatient) {
+            // Update phone if different
+            if (existingPatient.phone !== cleanPhone) {
+                updatePatient(existingPatient.id, { ...existingPatient, phone: cleanPhone });
+            }
+        } else {
+            // Create new patient
+            addPatient({
+                name: newPatientName,
+                phone: cleanPhone,
+                insurance: "",
+                plan: "",
+                birthDate: "",
+                gender: "other",
+                cep: "",
+                street: "",
+                number: "",
+                complement: "",
+                neighborhood: "",
+                city: "",
+                state: "",
+            });
+        }
+
         if (editingPatientId) {
             setPatients(patients.map(p => {
                 if (p.id === editingPatientId) {
                     return {
                         ...p,
                         patientName: newPatientName,
-                        phone: newPatientPhone.replace(/\D/g, ""),
+                        phone: cleanPhone,
                         time: newPatientTime
                     };
                 }
@@ -148,34 +184,10 @@ export default function ConsultasPage() {
             return;
         }
 
-        // Check if patient exists, if not, save it
-        const patientExists = availablePatients.some(
-            p => p.name.toLowerCase() === newPatientName.toLowerCase()
-        );
-
-        if (!patientExists) {
-            addPatient({
-                name: newPatientName,
-                phone: newPatientPhone.replace(/\D/g, ""),
-                // Default values for required fields
-                insurance: "",
-                plan: "",
-                birthDate: "",
-                gender: "other",
-                cep: "",
-                street: "",
-                number: "",
-                complement: "",
-                neighborhood: "",
-                city: "",
-                state: "",
-            });
-        }
-
         const newPatient: ConsultationItem = {
             id: Math.random().toString(36).substr(2, 9),
             patientName: newPatientName,
-            phone: newPatientPhone.replace(/\D/g, ""),
+            phone: cleanPhone,
             status: "Pendente",
             time: newPatientTime,
             whatsappSent: false
@@ -201,7 +213,7 @@ export default function ConsultasPage() {
 
         const message = `Bom dia Sr(a). *${patient.patientName}*!
 
-Me chamo *${attendantName}*, e falo do Setor de Agendamento da *Daya Gestão Médica*, responsável pela gestão dos pacientes do *~${selectedDoctor.name}*.
+Me chamo *${attendantName}*, e falo do Setor de Agendamento da *Daya Gestão Médica*, responsável pela gestão dos pacientes do *${selectedDoctor.name}*.
 
 Estou entrando em contato para confirmar sua consulta de *${weekDay}*, *${formattedDate}* às *${patient.time}* no *${selectedHospital.name}*, localizado na ${hospitalAddress}
 
@@ -278,6 +290,89 @@ Posso confirmar sua presença?`;
             toast.error("Erro de conexão ao tentar enviar mensagem.");
         } finally {
             setIsSending(false);
+        }
+    };
+
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const response = await fetch("/api/upload-consultas", {
+                method: "POST",
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                toast.error(errorData.error || "Erro ao processar arquivo");
+                return;
+            }
+
+            const data = await response.json();
+
+            const newPatients: ConsultationItem[] = data.map((item: any) => ({
+                id: Math.random().toString(36).substr(2, 9),
+                patientName: item.patientName,
+                phone: item.phone,
+                time: item.time,
+                status: "Pendente",
+                whatsappSent: false
+            }));
+
+            // Sync imported patients with global registry
+            newPatients.forEach(newP => {
+                const existing = availablePatients.find(p => p.name.toLowerCase() === newP.patientName.toLowerCase());
+                const cleanPhone = newP.phone?.replace(/\D/g, "") || "";
+
+                if (existing) {
+                    if (existing.phone !== cleanPhone && cleanPhone) {
+                        updatePatient(existing.id, { ...existing, phone: cleanPhone });
+                    }
+                } else {
+                    addPatient({
+                        name: newP.patientName,
+                        phone: cleanPhone,
+                        insurance: "",
+                        plan: "",
+                        birthDate: "",
+                        gender: "other",
+                        cep: "",
+                        street: "",
+                        number: "",
+                        complement: "",
+                        neighborhood: "",
+                        city: "",
+                        state: "",
+                    });
+                }
+            });
+
+            const uniqueNewPatients = newPatients.filter(np =>
+                !patients.some(p => p.patientName.toLowerCase() === np.patientName.toLowerCase())
+            );
+
+            if (uniqueNewPatients.length < newPatients.length) {
+                toast.info(`${newPatients.length - uniqueNewPatients.length} pacientes duplicados ignorados.`);
+            }
+
+            if (uniqueNewPatients.length === 0 && newPatients.length > 0) {
+                toast.warning("Todos os pacientes do arquivo já estão na lista.");
+            } else {
+                setPatients(prev => [...prev, ...uniqueNewPatients]);
+                toast.success(`${uniqueNewPatients.length} pacientes importados com sucesso!`);
+            }
+
+        } catch (error) {
+            console.error(error);
+            toast.error("Erro ao enviar arquivo.");
+        } finally {
+            setIsUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = "";
         }
     };
 
@@ -358,6 +453,27 @@ Posso confirmar sua presença?`;
                     <div>
                         <CardTitle>Lista de Pacientes</CardTitle>
                         <CardDescription>Adicione os pacientes agendados para este dia.</CardDescription>
+                    </div>
+                    <div className="flex gap-2">
+                        <input
+                            type="file"
+                            accept=".pdf, .jpg, .jpeg, .png, .webp"
+                            className="hidden"
+                            ref={fileInputRef}
+                            onChange={handleFileUpload}
+                        />
+                        <Button
+                            variant="outline"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isUploading}
+                        >
+                            {isUploading ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                                <Upload className="w-4 h-4 mr-2" />
+                            )}
+                            {isUploading ? "Processando..." : "Importar Arquivo"}
+                        </Button>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-6">
