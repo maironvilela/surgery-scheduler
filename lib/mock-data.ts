@@ -81,22 +81,7 @@ export const MOCK_SURGERIES: Surgery[] = [
         status: "scheduled",
         createdAt: new Date().toISOString()
     },
-    ...Array.from({ length: 50 }).map((_, i) => ({
-        id: `mock-surg-${i + 6}`,
-        patientId: `mock-pat-${i + 3}`,
-        patientName: `Paciente ${i + 3}`,
-        doctorId: `mock-doc-${(i % 5) + 3}`,
-        doctorName: `Dr. Mock ${i + 3}`,
-        hospitalId: `mock-${(i % 5) + 4}`,
-        hospitalName: `Hospital Geral ${(i % 5) + 1}`,
-        procedure: "Procedimento Padrão",
-        date: "2025-12-20",
-        startTime: "08:00",
-        endTime: "10:00",
-        room: "Sala 01",
-        status: "scheduled" as const,
-        createdAt: new Date().toISOString()
-    }))
+
 ];
 
 export const MOCK_PATIENTS: Patient[] = [
@@ -158,8 +143,8 @@ export const MOCK_DOCTORS: Doctor[] = [
     {
         id: "1",
         crm: "123456",
-        name: "Dr. Roberto Almeida",
-        specialty: "Cardiologia",
+        name: "Dr. Sávio Laborne",
+        specialty: "Ortopedista (Coluna)",
         status: "active",
         createdAt: new Date("2024-01-15").toISOString(),
         updatedAt: new Date("2024-03-20").toISOString()
@@ -167,92 +152,71 @@ export const MOCK_DOCTORS: Doctor[] = [
     {
         id: "2",
         crm: "654321",
-        name: "Dra. Luciana Mendes",
-        specialty: "Ortopedia",
+        name: "Dr. Jader de Andrade",
+        specialty: "Ortopedista (Coluna)",
         status: "active",
         createdAt: new Date("2024-02-10").toISOString(),
         updatedAt: new Date("2024-02-10").toISOString()
     },
-    ...Array.from({ length: 50 }).map((_, i) => ({
-        id: `mock-doc-${i + 3}`,
-        crm: `${100000 + i}`,
-        name: `Dr. Especialista ${i + 1}`,
-        specialty: "Cirurgia Geral",
-        status: "active" as const,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-    }))
+    {
+        id: "3",
+        crm: "654321",
+        name: "Dr. Romulo Oliveira",
+        specialty: "Ortopedista (Coluna)",
+        status: "active",
+        createdAt: new Date("2024-02-10").toISOString(),
+        updatedAt: new Date("2024-02-10").toISOString()
+    },
+
 ];
 
 export const MOCK_HOSPITALS: Hospital[] = [
     {
         id: "1",
-        name: "Hospital Santa Casa de Misericórdia",
+        name: "Ceot",
         contacts: [
-            { id: "1", type: "phone" as const, value: "(11) 3224-0000", label: "Geral", isPrimary: true },
-            { id: "2", type: "email" as const, value: "contato@santacasasp.org.br", label: "Contato", isPrimary: true }
+
         ],
-        cep: "01221-020",
-        street: "R. Dr. Cesário Mota Jr.",
-        number: "112",
+        cep: "00000000",
+        street: "Rua São Paulo",
+        number: "1818",
         complement: "",
-        neighborhood: "Vila Buarque",
-        city: "São Paulo",
-        state: "SP",
-        referencePoint: "Próximo ao Mackenzie",
+        neighborhood: "Lourdes",
+        city: "Belo Horizonte",
+        state: "MG",
+        referencePoint: "",
         createdAt: new Date().toISOString()
     },
     {
         id: "2",
-        name: "Hospital Albert Einstein",
-        contacts: [
-            { id: "3", type: "phone" as const, value: "(11) 2151-1233", label: "Atendimento", isPrimary: true },
-            { id: "4", type: "email" as const, value: "atendimento@einstein.br", label: "SAC", isPrimary: true }
-        ],
-        cep: "05652-900",
-        street: "Av. Albert Einstein",
-        number: "627",
-        complement: "Bloco A1",
-        neighborhood: "Morumbi",
-        city: "São Paulo",
-        state: "SP",
-        referencePoint: "Entrada principal",
+        name: "Mais Saúde Santo Agostinho",
+        contacts: [],
+        cep: "-",
+        street: "Bernardo Guimarães",
+        number: "2785",
+        complement: "-",
+        neighborhood: "Santo Agostinho",
+        city: "Belo Horizonte",
+        state: "MG",
+        referencePoint: "-",
         createdAt: new Date().toISOString()
     },
     {
         id: "3",
-        name: "Hospital Sírio-Libanês",
-        contacts: [
-            { id: "5", type: "phone", value: "(11) 3394-0200", label: "Central", isPrimary: true },
-            { id: "6", type: "email", value: "sac@sirio-libanes.org.br", label: "SAC", isPrimary: true }
-        ],
-        cep: "01308-050",
-        street: "Rua Dona Adma Jafet",
-        number: "91",
-        complement: "",
-        neighborhood: "Bela Vista",
-        city: "São Paulo",
-        state: "SP",
-        referencePoint: "",
+        name: "Ambulatório Mater Dei Contorno",
+        contacts: [],
+        cep: "-",
+        street: "Avenida do Contorno",
+        number: "9000 - 19º Andar",
+        complement: "19º Andar",
+        neighborhood: "Barro Preto",
+        city: "Belo Horizonte",
+        state: "MG",
+        referencePoint: "-",
         createdAt: new Date().toISOString()
     },
-    ...Array.from({ length: 50 }).map((_, i) => ({
-        id: `mock-${i + 4}`,
-        name: `Hospital Geral ${i + 1}`,
-        contacts: [
-            { id: `c-${i}-1`, type: "phone" as const, value: `(11) 3000-${(1000 + i).toString().slice(1)}`, label: "Geral", isPrimary: true },
-            { id: `c-${i}-2`, type: "email" as const, value: `contato@hospitalgeral${i + 1}.com.br`, label: "Contato", isPrimary: true }
-        ],
-        cep: `0${1000 + i * 10}-000`,
-        street: `Rua Exemplo ${i + 1}`,
-        number: `${(i + 1) * 10}`,
-        complement: "",
-        neighborhood: "Centro",
-        city: "São Paulo",
-        state: "SP",
-        referencePoint: "",
-        createdAt: new Date().toISOString()
-    }))
+
+
 ];
 
 export const MOCK_PROCEDURES: Procedure[] = [

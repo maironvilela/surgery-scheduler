@@ -39,7 +39,7 @@ import { useDoctors } from "@/context/doctor-context";
 import { useHospitals } from "@/context/hospital-context";
 import { usePatients } from "@/context/patient-context";
 import { ConsultationItem } from "@/types";
-import { formatPhone } from "@/lib/utils";
+import { formatPhone, toTitleCase } from "@/lib/utils";
 import { toast } from "sonner";
 
 export default function ConsultasPage() {
@@ -211,7 +211,7 @@ export default function ConsultasPage() {
 
         const hospitalAddress = `${selectedHospital.street}, ${selectedHospital.number} - ${selectedHospital.neighborhood || ''}, ${selectedHospital.city}/${selectedHospital.state}`;
 
-        const message = `Bom dia Sr(a). *${patient.patientName}*!
+        const message = `Ola *${toTitleCase(patient.patientName)}*
 
 Me chamo *${attendantName}*, e falo do Setor de Agendamento da *Daya Gestão Médica*, responsável pela gestão dos pacientes do *${selectedDoctor.name}*.
 

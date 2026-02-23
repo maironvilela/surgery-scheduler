@@ -10,7 +10,6 @@ import {
     Users,
     Stethoscope,
     DoorOpen,
-    Settings,
     Building2,
     Activity,
     MessageCircle,
@@ -24,7 +23,6 @@ const navItems = [
     { href: "/medicos", label: "Médicos", icon: Stethoscope },
     { href: "/hospitais", label: "Hospitais", icon: Building2 },
     { href: "/procedimentos", label: "Procedimentos", icon: Activity },
-    { href: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 
 export function Sidebar({ className }: { className?: string }) {
