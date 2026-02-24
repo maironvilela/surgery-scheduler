@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Doctor {
+  id        String   @id @default(cuid())
+  crm       String   @unique
+  name      String
+  specialty String
+  photoUrl  String?
+  status    String   @default("active") // "active" | "inactive"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  consultations Consultation[]
+}
+
+model Hospital {
+  id             String   @id @default(cuid())
+  name           String
+  cep            String
+  street         String
+  number         String
+  complement     String?
+  neighborhood   String
+  city           String
+  state          String
+  referencePoint String?
+  createdAt      DateTime @default(now())
+
+  contacts      HospitalContact[]
+  consultations Consultation[]
+}
+
+model HospitalContact {
+  id         String   @id @default(cuid())
+  type       String   // "phone" | "email"
+  value      String
+  label      String?  // e.g. "Comercial"
+  isPrimary  Boolean  @default(false)
+  hospitalId String
+  hospital   Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+}
+
+model Patient {
+  id           String   @id @default(cuid())
+  name         String
+  insurance    String?  // Convênio
+  plan         String?  // Plano
+  birthDate    String?
+  gender       String   @default("other")
+  cep          String?
+  street       String?
+  number       String?
+  complement   String?
+  neighborhood String?
+  city         String?
+  state        String?
+  phone        String?
+  email        String?
+  createdAt    DateTime @default(now())
+
+  consultations Consultation[]
+}
+
+model Consultation {
+  id           String   @id @default(cuid())
+  patientName  String
+  phone        String?
+  status       String   @default("Pendente")
+  time         String
+  whatsappSent Boolean  @default(false)
+  date         DateTime @default(now())
+  
+  doctorId     String?
+  doctor       Doctor?  @relation(fields: [doctorId], references: [id])
+  hospitalId   String?
+  hospital     Hospital? @relation(fields: [hospitalId], references: [id])
+  patientId    String?
+  patient      Patient?  @relation(fields: [patientId], references: [id])
+}
+
+model Surgery {
+  id           String   @id @default(cuid())
+  patientId    String
+  patientName  String
+  doctorId     String
+  doctorName   String
+  hospitalId   String
+  hospitalName String
+  procedure    String
+  date         String   // YYYY-MM-DD
+  startTime    String   // HH:mm
+  endTime      String   // HH:mm
+  room         String
+  status       String   @default("scheduled") // scheduled | completed | cancelled | in_progress
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  comments     Comment[]
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  user      String
+  date      String
+  content   String
+  surgeryId String
+  surgery   Surgery  @relation(fields: [surgeryId], references: [id], onDelete: Cascade)
+}
+
+model Procedure {
+  id                      String   @id @default(cuid())
+  code                    String   @unique
+  name                    String
+  specialty               String
+  fastingTime             String
+  estimatedDuration       String
+  anesthesiaType          String
+  equipment               String
+  materials               String
+  bloodRequirement        String
+ teamSize                String
+  recoveryTimePACU        String
+  recoveryTimeICU         String
+  hospitalizationTime     String
+  homeRecoveryTime        String
+  suggestedCertificateTime String
+  consentForm             Boolean  @default(false)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  reports                 ProcedureReport[]
+}
+
+model ProcedureReport {
+  id          String    @id @default(cuid())
+  user        String
+  avatar      String?
+  content     String
+  date        String
+  procedureId String
+  procedure   Procedure @relation(fields: [procedureId], references: [id], onDelete: Cascade)
+}

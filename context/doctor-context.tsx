@@ -1,44 +1,70 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { Doctor } from "@/types";
-import { MOCK_DOCTORS } from "@/lib/mock-data";
+import { getDoctors, addDoctor as serverAddDoctor, updateDoctor as serverUpdateDoctor, deleteDoctor as serverDeleteDoctor } from "@/app/actions/doctors";
+import { toast } from "sonner";
 
 interface DoctorContextType {
     doctors: Doctor[];
-    addDoctor: (doctor: Omit<Doctor, "id" | "createdAt" | "updatedAt">) => void;
-    updateDoctor: (id: string, doctor: Omit<Doctor, "id" | "createdAt" | "updatedAt">) => void;
-    deleteDoctor: (id: string) => void;
+    addDoctor: (doctor: Omit<Doctor, "id" | "createdAt" | "updatedAt">) => Promise<void>;
+    updateDoctor: (id: string, doctor: Omit<Doctor, "id" | "createdAt" | "updatedAt">) => Promise<void>;
+    deleteDoctor: (id: string) => Promise<void>;
     getDoctor: (id: string) => Doctor | undefined;
+    isLoading: boolean;
 }
 
 const DoctorContext = createContext<DoctorContextType | undefined>(undefined);
 
 export function DoctorProvider({ children }: { children: ReactNode }) {
-    const [doctors, setDoctors] = useState<Doctor[]>(MOCK_DOCTORS);
+    const [doctors, setDoctors] = useState<Doctor[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const addDoctor = (data: Omit<Doctor, "id" | "createdAt" | "updatedAt">) => {
-        const newDoctor: Doctor = {
-            ...data,
-            id: Math.random().toString(36).substr(2, 9),
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-        };
-        setDoctors((prev) => [newDoctor, ...prev]);
+    useEffect(() => {
+        async function loadDoctors() {
+            try {
+                const data = await getDoctors();
+                setDoctors(data);
+            } catch (error) {
+                console.error("Failed to load doctors:", error);
+                toast.error("Erro ao carregar médicos");
+            } finally {
+                setIsLoading(false);
+            }
+        }
+        loadDoctors();
+    }, []);
+
+    const addDoctor = async (data: Omit<Doctor, "id" | "createdAt" | "updatedAt">) => {
+        try {
+            const newDoctor = await serverAddDoctor(data);
+            setDoctors((prev) => [newDoctor as Doctor, ...prev]);
+            toast.success("Médico adicionado");
+        } catch (error) {
+            toast.error("Erro ao adicionar médico");
+        }
     };
 
-    const updateDoctor = (id: string, data: Omit<Doctor, "id" | "createdAt" | "updatedAt">) => {
-        setDoctors((prev) =>
-            prev.map((d) =>
-                d.id === id
-                    ? { ...d, ...data, updatedAt: new Date().toISOString() }
-                    : d
-            )
-        );
+    const updateDoctor = async (id: string, data: Omit<Doctor, "id" | "createdAt" | "updatedAt">) => {
+        try {
+            const updated = await serverUpdateDoctor(id, data);
+            setDoctors((prev) =>
+                prev.map((d) => (d.id === id ? { ...updated as Doctor } : d))
+            );
+            toast.success("Médico atualizado");
+        } catch (error) {
+            toast.error("Erro ao atualizar médico");
+        }
     };
 
-    const deleteDoctor = (id: string) => {
-        setDoctors((prev) => prev.filter((d) => d.id !== id));
+    const deleteDoctor = async (id: string) => {
+        try {
+            await serverDeleteDoctor(id);
+            setDoctors((prev) => prev.filter((d) => d.id !== id));
+            toast.success("Médico removido");
+        } catch (error) {
+            toast.error("Erro ao remover médico");
+        }
     };
 
     const getDoctor = (id: string) => {
@@ -47,7 +73,7 @@ export function DoctorProvider({ children }: { children: ReactNode }) {
 
     return (
         <DoctorContext.Provider
-            value={{ doctors, addDoctor, updateDoctor, deleteDoctor, getDoctor }}
+            value={{ doctors, addDoctor, updateDoctor, deleteDoctor, getDoctor, isLoading }}
         >
             {children}
         </DoctorContext.Provider>

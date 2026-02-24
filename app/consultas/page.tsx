@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -41,6 +41,7 @@ import { usePatients } from "@/context/patient-context";
 import { ConsultationItem } from "@/types";
 import { formatPhone, toTitleCase } from "@/lib/utils";
 import { toast } from "sonner";
+import { getConsultations, addConsultation, updateConsultation, deleteConsultation } from "@/app/actions/consultations";
 
 export default function ConsultasPage() {
     const { doctors } = useDoctors();
@@ -56,6 +57,7 @@ export default function ConsultasPage() {
     // List State
     const [patients, setPatients] = useState<ConsultationItem[]>([]);
     const [editingPatientId, setEditingPatientId] = useState<string | null>(null);
+    const [isLoadingConsultations, setIsLoadingConsultations] = useState(true);
 
     // New Patient Input States
     const [newPatientName, setNewPatientName] = useState("");
@@ -107,6 +109,21 @@ export default function ConsultasPage() {
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Initial Load
+    useEffect(() => {
+        async function load() {
+            try {
+                const data = await getConsultations();
+                setPatients(data);
+            } catch (error) {
+                toast.error("Erro ao carregar consultas");
+            } finally {
+                setIsLoadingConsultations(false);
+            }
+        }
+        load();
+    }, []);
+
     // Actions
     const handleSelectPatient = (patient: any) => {
         setNewPatientName(patient.name);
@@ -128,7 +145,7 @@ export default function ConsultasPage() {
         setNewPatientTime("");
     };
 
-    const handleAddPatient = () => {
+    const handleAddPatient = async () => {
         if (!newPatientName || !newPatientTime) return;
 
         const cleanPhone = newPatientPhone.replace(/\D/g, "");
@@ -141,11 +158,11 @@ export default function ConsultasPage() {
         if (existingPatient) {
             // Update phone if different
             if (existingPatient.phone !== cleanPhone) {
-                updatePatient(existingPatient.id, { ...existingPatient, phone: cleanPhone });
+                await updatePatient(existingPatient.id, { ...existingPatient, phone: cleanPhone });
             }
         } else {
             // Create new patient
-            addPatient({
+            await addPatient({
                 name: newPatientName,
                 phone: cleanPhone,
                 insurance: "",
@@ -159,22 +176,22 @@ export default function ConsultasPage() {
                 neighborhood: "",
                 city: "",
                 state: "",
+                email: "",
             });
         }
 
         if (editingPatientId) {
-            setPatients(patients.map(p => {
-                if (p.id === editingPatientId) {
-                    return {
-                        ...p,
-                        patientName: newPatientName,
-                        phone: cleanPhone,
-                        time: newPatientTime
-                    };
-                }
-                return p;
-            }));
-            handleCancelEdit();
+            try {
+                const updated = await updateConsultation(editingPatientId, {
+                    patientName: newPatientName,
+                    phone: cleanPhone,
+                    time: newPatientTime
+                });
+                setPatients(patients.map(p => p.id === editingPatientId ? updated as ConsultationItem : p));
+                handleCancelEdit();
+            } catch (error) {
+                toast.error("Erro ao atualizar consulta");
+            }
             return;
         }
 
@@ -184,23 +201,33 @@ export default function ConsultasPage() {
             return;
         }
 
-        const newPatient: ConsultationItem = {
-            id: Math.random().toString(36).substr(2, 9),
-            patientName: newPatientName,
-            phone: cleanPhone,
-            status: "Pendente",
-            time: newPatientTime,
-            whatsappSent: false
-        };
+        try {
+            const newItem = await addConsultation({
+                patientName: newPatientName,
+                phone: cleanPhone,
+                status: "Pendente",
+                time: newPatientTime,
+                whatsappSent: false
+            });
 
-        setPatients([...patients, newPatient]);
-        setNewPatientName("");
-        setNewPatientPhone("");
-        setNewPatientTime("");
+            setPatients([...patients, newItem as ConsultationItem]);
+            setNewPatientName("");
+            setNewPatientPhone("");
+            setNewPatientTime("");
+            toast.success("Paciente adicionado à lista");
+        } catch (error) {
+            toast.error("Erro ao adicionar consulta");
+        }
     };
 
-    const handleDeletePatient = (id: string) => {
-        setPatients(patients.filter(p => p.id !== id));
+    const handleDeletePatient = async (id: string) => {
+        try {
+            await deleteConsultation(id);
+            setPatients(patients.filter(p => p.id !== id));
+            toast.success("Consulta removida");
+        } catch (error) {
+            toast.error("Erro ao remover consulta");
+        }
     };
 
     const handleOpenWhatsAppDialog = (patient: ConsultationItem) => {
@@ -211,7 +238,7 @@ export default function ConsultasPage() {
 
         const hospitalAddress = `${selectedHospital.street}, ${selectedHospital.number} - ${selectedHospital.neighborhood || ''}, ${selectedHospital.city}/${selectedHospital.state}`;
 
-        const message = `Ola *${toTitleCase(patient.patientName)}*
+        const message = `Olá, *${toTitleCase(patient.patientName)}*
 
 Me chamo *${attendantName}*, e falo do Setor de Agendamento da *Daya Gestão Médica*, responsável pela gestão dos pacientes do *${selectedDoctor.name}*.
 
@@ -234,10 +261,6 @@ Posso confirmar sua presença?`;
             return;
         }
 
-        // Basic formatting to ensure +55 (assuming BR number for now based on user context)
-        // If it starts with 55, add +, if not, add +55.
-        // Actually the user example had +55.
-        // If the stored phone is just 31987205436 (11 digits), we need to add +55.
         if (rawPhone.length === 11 || rawPhone.length === 10) {
             rawPhone = "+55" + rawPhone;
         } else if (rawPhone.startsWith("55") && rawPhone.length > 11) {
@@ -262,8 +285,9 @@ Posso confirmar sua presença?`;
                 const errorData = await response.json();
 
                 // Update status to "Erro" on API failure
+                const updated = await updateConsultation(patientToMessage.id, { status: "Erro" });
                 setPatients(patients.map(p =>
-                    p.id === patientToMessage.id ? { ...p, status: "Erro" } : p
+                    p.id === patientToMessage.id ? updated as ConsultationItem : p
                 ));
 
                 toast.error(`Erro ao enviar mensagem: ${errorData.error || "Erro desconhecido"}`);
@@ -271,8 +295,9 @@ Posso confirmar sua presença?`;
             }
 
             // Mark as sent and update status
+            const updated = await updateConsultation(patientToMessage.id, { whatsappSent: true, status: "Enviado" });
             setPatients(patients.map(p =>
-                p.id === patientToMessage.id ? { ...p, whatsappSent: true, status: "Enviado" } : p
+                p.id === patientToMessage.id ? updated as ConsultationItem : p
             ));
 
             setIsWhatsAppDialogOpen(false);
@@ -283,9 +308,14 @@ Posso confirmar sua presença?`;
             console.error("Erro ao enviar:", error);
 
             // Update status to "Erro" on exception
-            setPatients(patients.map(p =>
-                p.id === patientToMessage.id ? { ...p, status: "Erro" } : p
-            ));
+            try {
+                const updated = await updateConsultation(patientToMessage.id, { status: "Erro" });
+                setPatients(patients.map(p =>
+                    p.id === patientToMessage.id ? updated as ConsultationItem : p
+                ));
+            } catch (e) {
+                console.error("Failed to update status on error", e);
+            }
 
             toast.error("Erro de conexão ao tentar enviar mensagem.");
         } finally {
@@ -315,27 +345,17 @@ Posso confirmar sua presença?`;
 
             const data = await response.json();
 
-            const newPatients: ConsultationItem[] = data.map((item: any) => ({
-                id: Math.random().toString(36).substr(2, 9),
-                patientName: item.patientName,
-                phone: item.phone,
-                time: item.time,
-                status: "Pendente",
-                whatsappSent: false
-            }));
+            // Process and save both patients and consultations
+            const importedConsultations: ConsultationItem[] = [];
 
-            // Sync imported patients with global registry
-            newPatients.forEach(newP => {
-                const existing = availablePatients.find(p => p.name.toLowerCase() === newP.patientName.toLowerCase());
-                const cleanPhone = newP.phone?.replace(/\D/g, "") || "";
+            for (const item of data) {
+                const cleanPhone = item.phone?.replace(/\D/g, "") || "";
 
-                if (existing) {
-                    if (existing.phone !== cleanPhone && cleanPhone) {
-                        updatePatient(existing.id, { ...existing, phone: cleanPhone });
-                    }
-                } else {
-                    addPatient({
-                        name: newP.patientName,
+                // 1. Sync Patient
+                const existing = availablePatients.find(p => p.name.toLowerCase() === item.patientName.toLowerCase());
+                if (!existing) {
+                    await addPatient({
+                        name: item.patientName,
                         phone: cleanPhone,
                         insurance: "",
                         plan: "",
@@ -348,23 +368,30 @@ Posso confirmar sua presença?`;
                         neighborhood: "",
                         city: "",
                         state: "",
+                        email: "",
                     });
+                } else if (existing.phone !== cleanPhone && cleanPhone) {
+                    await updatePatient(existing.id, { ...existing, phone: cleanPhone });
                 }
-            });
 
-            const uniqueNewPatients = newPatients.filter(np =>
-                !patients.some(p => p.patientName.toLowerCase() === np.patientName.toLowerCase())
-            );
-
-            if (uniqueNewPatients.length < newPatients.length) {
-                toast.info(`${newPatients.length - uniqueNewPatients.length} pacientes duplicados ignorados.`);
+                // 2. Add Consultation if not duplicate in current list
+                if (!patients.some(p => p.patientName.toLowerCase() === item.patientName.toLowerCase())) {
+                    const newItem = await addConsultation({
+                        patientName: item.patientName,
+                        phone: cleanPhone,
+                        time: item.time,
+                        status: "Pendente",
+                        whatsappSent: false
+                    });
+                    importedConsultations.push(newItem as ConsultationItem);
+                }
             }
 
-            if (uniqueNewPatients.length === 0 && newPatients.length > 0) {
+            if (importedConsultations.length === 0 && data.length > 0) {
                 toast.warning("Todos os pacientes do arquivo já estão na lista.");
             } else {
-                setPatients(prev => [...prev, ...uniqueNewPatients]);
-                toast.success(`${uniqueNewPatients.length} pacientes importados com sucesso!`);
+                setPatients(prev => [...prev, ...importedConsultations]);
+                toast.success(`${importedConsultations.length} pacientes importados com sucesso!`);
             }
 
         } catch (error) {
