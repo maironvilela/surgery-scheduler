@@ -3,19 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import {
-    Calendar as CalendarIcon,
-    User,
-    Building2,
-    Clock,
-    MessageCircle,
-    Plus,
-    Trash2,
-    Pencil,
-    FileText,
-    Loader2,
-    Upload
-} from "lucide-react";
+import { Trash2, MessageCircle, Clock, Plus, Loader2, Upload, Pencil, User, Filter, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +22,17 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+    SheetFooter,
+    SheetClose
+} from "@/components/ui/sheet";
+import { Label } from "@/components/ui/label";
 
 import { useDoctors } from "@/context/doctor-context";
 import { useHospitals } from "@/context/hospital-context";
@@ -41,7 +40,7 @@ import { usePatients } from "@/context/patient-context";
 import { ConsultationItem } from "@/types";
 import { formatPhone, toTitleCase } from "@/lib/utils";
 import { toast } from "sonner";
-import { getConsultations, addConsultation, updateConsultation, deleteConsultation } from "@/app/actions/consultations";
+import { getConsultations, addConsultation, updateConsultation, deleteConsultation, deleteAllConsultations } from "@/app/actions/consultations";
 
 export default function ConsultasPage() {
     const { doctors } = useDoctors();
@@ -58,11 +57,29 @@ export default function ConsultasPage() {
     const [patients, setPatients] = useState<ConsultationItem[]>([]);
     const [editingPatientId, setEditingPatientId] = useState<string | null>(null);
     const [isLoadingConsultations, setIsLoadingConsultations] = useState(true);
+    const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
+    const [isFilterSidebarOpen, setIsFilterSidebarOpen] = useState(false);
+
+    // Filter States
+    const [filterDoctorId, setFilterDoctorId] = useState<string>("all");
+    const [filterHospitalId, setFilterHospitalId] = useState<string>("all");
+    const [filterDate, setFilterDate] = useState<string>("");
 
     // New Patient Input States
     const [newPatientName, setNewPatientName] = useState("");
     const [newPatientPhone, setNewPatientPhone] = useState("");
     const [newPatientTime, setNewPatientTime] = useState("");
+    const [whatsappErrors, setWhatsappErrors] = useState<Record<string, boolean>>({});
+
+    const handleStatusChange = async (id: string, newStatus: string) => {
+        try {
+            const updated = await updateConsultation(id, { status: newStatus });
+            setPatients(patients.map(p => p.id === id ? updated as ConsultationItem : p));
+            toast.success("Status atualizado");
+        } catch (error) {
+            toast.error("Erro ao atualizar status");
+        }
+    };
 
     // Computed Values
     const selectedDoctor = useMemo(() =>
@@ -99,6 +116,15 @@ export default function ConsultasPage() {
         ).slice(0, 5);
     }, [newPatientName, availablePatients]);
 
+    const filteredConsultations = useMemo(() => {
+        return patients.filter(patient => {
+            const matchesDoctor = filterDoctorId === "all" || patient.doctorId === filterDoctorId;
+            const matchesHospital = filterHospitalId === "all" || patient.hospitalId === filterHospitalId;
+            const matchesDate = !filterDate || (patient.date && patient.date.startsWith(filterDate));
+            return matchesDoctor && matchesHospital && matchesDate;
+        });
+    }, [patients, filterDoctorId, filterHospitalId, filterDate]);
+
     const [showSuggestions, setShowSuggestions] = useState(false);
 
     // WhatsApp Dialog State
@@ -113,7 +139,7 @@ export default function ConsultasPage() {
     useEffect(() => {
         async function load() {
             try {
-                const data = await getConsultations();
+                const data = await getConsultations(date);
                 setPatients(data);
             } catch (error) {
                 toast.error("Erro ao carregar consultas");
@@ -122,7 +148,7 @@ export default function ConsultasPage() {
             }
         }
         load();
-    }, []);
+    }, [date]);
 
     // Actions
     const handleSelectPatient = (patient: any) => {
@@ -185,7 +211,8 @@ export default function ConsultasPage() {
                 const updated = await updateConsultation(editingPatientId, {
                     patientName: newPatientName,
                     phone: cleanPhone,
-                    time: newPatientTime
+                    time: newPatientTime,
+                    date: date || new Date().toISOString().split('T')[0]
                 });
                 setPatients(patients.map(p => p.id === editingPatientId ? updated as ConsultationItem : p));
                 handleCancelEdit();
@@ -207,7 +234,11 @@ export default function ConsultasPage() {
                 phone: cleanPhone,
                 status: "Pendente",
                 time: newPatientTime,
-                whatsappSent: false
+                date: date || new Date().toISOString().split('T')[0],
+                whatsappSent: false,
+                doctorId: selectedDoctorId,
+                hospitalId: selectedHospitalId,
+                insurance: availablePatients.find(p => p.name.toLowerCase() === newPatientName.toLowerCase())?.insurance || ""
             });
 
             setPatients([...patients, newItem as ConsultationItem]);
@@ -230,19 +261,33 @@ export default function ConsultasPage() {
         }
     };
 
+    const handleClearList = async () => {
+        try {
+            await deleteAllConsultations();
+            setPatients([]);
+            setIsClearDialogOpen(false);
+            toast.success("Lista limpa com sucesso!");
+        } catch (error) {
+            toast.error("Erro ao limpar lista");
+        }
+    };
+
     const handleOpenWhatsAppDialog = (patient: ConsultationItem) => {
         if (!selectedDoctor || !selectedHospital || !date || !attendantName) {
             toast.warning("Por favor, preencha todos os campos do cabeçalho (Médico, Hospital, Data, Atendente).");
             return;
         }
 
-        const hospitalAddress = `${selectedHospital.street}, ${selectedHospital.number} - ${selectedHospital.neighborhood || ''}, ${selectedHospital.city}/${selectedHospital.state}`;
+        const doctorName = doctors.find(d => d.id === patient.doctorId)?.name || selectedDoctor?.name || 'Médico';
+        const hospitalName = hospitals.find(h => h.id === patient.hospitalId)?.name || selectedHospital?.name || 'Hospital';
+        const hospitalObj = hospitals.find(h => h.id === patient.hospitalId) || selectedHospital;
+        const hospitalAddress = hospitalObj ? `${hospitalObj.street}, ${hospitalObj.number} - ${hospitalObj.neighborhood || ''}, ${hospitalObj.city}/${hospitalObj.state}` : '';
 
         const message = `Olá, *${toTitleCase(patient.patientName)}*
 
-Me chamo *${attendantName}*, e falo do Setor de Agendamento da *Daya Gestão Médica*, responsável pela gestão dos pacientes do *${selectedDoctor.name}*.
+Me chamo *${attendantName}*, e falo do Setor de Agendamento da *Daya Gestão Médica*, responsável pela gestão dos pacientes do *${doctorName}*.
 
-Estou entrando em contato para confirmar sua consulta de *${weekDay}*, *${formattedDate}* às *${patient.time}* no *${selectedHospital.name}*, localizado na ${hospitalAddress}
+Estou entrando em contato para confirmar sua consulta de *${weekDay}*, *${formattedDate}* às *${patient.time}* no *${hospitalName}*, localizado na ${hospitalAddress}
 
 Posso confirmar sua presença?`;
 
@@ -284,21 +329,22 @@ Posso confirmar sua presença?`;
             if (!response.ok) {
                 const errorData = await response.json();
 
-                // Update status to "Erro" on API failure
-                const updated = await updateConsultation(patientToMessage.id, { status: "Erro" });
-                setPatients(patients.map(p =>
-                    p.id === patientToMessage.id ? updated as ConsultationItem : p
-                ));
-
+                // Set local error state instead of saving to DB
+                setWhatsappErrors(prev => ({ ...prev, [patientToMessage.id]: true }));
                 toast.error(`Erro ao enviar mensagem: ${errorData.error || "Erro desconhecido"}`);
                 return;
             }
 
-            // Mark as sent and update status
-            const updated = await updateConsultation(patientToMessage.id, { whatsappSent: true, status: "Enviado" });
+            // Mark as sent and update status to "Aguardando"
+            const updated = await updateConsultation(patientToMessage.id, {
+                whatsappSent: true,
+                status: "Aguardando"
+            });
             setPatients(patients.map(p =>
                 p.id === patientToMessage.id ? updated as ConsultationItem : p
             ));
+
+            setWhatsappErrors(prev => ({ ...prev, [patientToMessage.id]: false }));
 
             setIsWhatsAppDialogOpen(false);
             setPatientToMessage(null);
@@ -306,17 +352,8 @@ Posso confirmar sua presença?`;
 
         } catch (error) {
             console.error("Erro ao enviar:", error);
-
-            // Update status to "Erro" on exception
-            try {
-                const updated = await updateConsultation(patientToMessage.id, { status: "Erro" });
-                setPatients(patients.map(p =>
-                    p.id === patientToMessage.id ? updated as ConsultationItem : p
-                ));
-            } catch (e) {
-                console.error("Failed to update status on error", e);
-            }
-
+            // Set local error state
+            setWhatsappErrors(prev => ({ ...prev, [patientToMessage.id]: true }));
             toast.error("Erro de conexão ao tentar enviar mensagem.");
         } finally {
             setIsSending(false);
@@ -326,6 +363,13 @@ Posso confirmar sua presença?`;
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
+
+        // Validation: Required fields
+        if (!selectedDoctorId || !selectedHospitalId || !date || !attendantName.trim()) {
+            toast.error("Por favor, preencha Médico, Hospital, Data e Atendente antes de importar a lista.");
+            if (fileInputRef.current) fileInputRef.current.value = "";
+            return;
+        }
 
         setIsUploading(true);
         const formData = new FormData();
@@ -357,7 +401,7 @@ Posso confirmar sua presença?`;
                     await addPatient({
                         name: item.patientName,
                         phone: cleanPhone,
-                        insurance: "",
+                        insurance: item.insurance || "",
                         plan: "",
                         birthDate: "",
                         gender: "other",
@@ -380,8 +424,12 @@ Posso confirmar sua presença?`;
                         patientName: item.patientName,
                         phone: cleanPhone,
                         time: item.time,
+                        date: date || new Date().toISOString().split('T')[0],
                         status: "Pendente",
-                        whatsappSent: false
+                        whatsappSent: false,
+                        doctorId: selectedDoctorId,
+                        hospitalId: selectedHospitalId,
+                        insurance: item.insurance || ""
                     });
                     importedConsultations.push(newItem as ConsultationItem);
                 }
@@ -489,6 +537,7 @@ Posso confirmar sua presença?`;
                             ref={fileInputRef}
                             onChange={handleFileUpload}
                         />
+
                         <Button
                             variant="outline"
                             onClick={() => fileInputRef.current?.click()}
@@ -500,6 +549,25 @@ Posso confirmar sua presença?`;
                                 <Upload className="w-4 h-4 mr-2" />
                             )}
                             {isUploading ? "Processando..." : "Importar Arquivo"}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsFilterSidebarOpen(true)}
+                            className="relative"
+                        >
+                            <Filter className="w-4 h-4 mr-2" />
+                            Filtrar
+                            {(filterDoctorId !== "all" || filterHospitalId !== "all" || filterDate) && (
+                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-600 rounded-full" />
+                            )}
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={() => setIsClearDialogOpen(true)}
+                            disabled={patients.length === 0}
+                        >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Limpar Lista
                         </Button>
                     </div>
                 </CardHeader>
@@ -594,46 +662,78 @@ Posso confirmar sua presença?`;
                                 <TableRow>
                                     <TableHead>Horário</TableHead>
                                     <TableHead>Paciente</TableHead>
-                                    <TableHead>Telefone</TableHead>
-                                    <TableHead>Status</TableHead>
+                                    <TableHead>Convênio</TableHead>
+                                    <TableHead>Hospital</TableHead>
+                                    <TableHead>Médico</TableHead>
+                                    <TableHead className="w-[150px]">Status</TableHead>
                                     <TableHead className="text-right">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {patients.length === 0 ? (
+                                {isLoadingConsultations ? (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                                            Nenhum paciente adicionado ainda.
+                                        <TableCell colSpan={8} className="h-24 text-center">
+                                            <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
+                                            <p className="mt-2 text-sm text-muted-foreground">Carregando consultas...</p>
+                                        </TableCell>
+                                    </TableRow>
+                                ) : filteredConsultations.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                                            Nenhuma consulta encontrada.
                                         </TableCell>
                                     </TableRow>
                                 ) : (
-                                    patients
+                                    filteredConsultations
                                         .sort((a, b) => a.time.localeCompare(b.time))
                                         .map((patient) => (
                                             <TableRow key={patient.id}>
                                                 <TableCell className="font-medium">{patient.time}</TableCell>
-                                                <TableCell>{patient.patientName}</TableCell>
-                                                <TableCell>{formatPhone(patient.phone || "")}</TableCell>
                                                 <TableCell>
-                                                    <Badge
-                                                        variant="secondary"
-                                                        className={`font-normal ${patient.status === 'Enviado' ? 'bg-green-100 text-green-700 hover:bg-green-100' :
-                                                            patient.status === 'Erro' ? 'bg-red-100 text-red-700 hover:bg-red-100' : ''
-                                                            }`}
+                                                    <div className="flex flex-col">
+                                                        <span>{patient.patientName}</span>
+                                                        <span className="text-xs text-muted-foreground">{formatPhone(patient.phone || "")}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>{patient.insurance}</TableCell>
+                                                <TableCell>{hospitals.find(h => h.id === patient.hospitalId)?.name || "-"}</TableCell>
+                                                <TableCell>{doctors.find(d => d.id === patient.doctorId)?.name || "-"}</TableCell>
+                                                <TableCell>
+                                                    <Select
+                                                        value={patient.status}
+                                                        onValueChange={(val) => handleStatusChange(patient.id, val)}
                                                     >
-                                                        {patient.status}
-                                                    </Badge>
+                                                        <SelectTrigger
+                                                            className={`h-9 w-full text-[10px]  font-bold uppercase transition-all border ${patient.status === 'Confirmada' ? 'bg-green-50 border-green-200 text-green-700' :
+                                                                patient.status === 'Cancelada' ? 'bg-red-50 border-red-200 text-red-700' :
+                                                                    patient.status === 'Aguardando' ? 'bg-blue-50 border-blue-200 text-blue-700' :
+                                                                        'bg-yellow-50 border-yellow-200 text-yellow-700'
+                                                                } hover:opacity-80`}
+                                                        >
+                                                            <SelectValue placeholder="Status" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="Pendente">Pendente</SelectItem>
+                                                            <SelectItem value="Aguardando">Aguardando</SelectItem>
+                                                            <SelectItem value="Confirmada">Confirmada</SelectItem>
+                                                            <SelectItem value="Cancelada">Cancelada</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
                                                 </TableCell>
                                                 <TableCell className="text-right flex justify-end gap-2">
                                                     <Button
                                                         variant={patient.whatsappSent ? "default" : "outline"}
                                                         size="sm"
-                                                        className={patient.whatsappSent ? "bg-green-600 hover:bg-green-700" : "text-green-600 border-green-200 hover:bg-green-50"}
+                                                        className={
+                                                            patient.whatsappSent ? "bg-green-600 hover:bg-green-700" :
+                                                                whatsappErrors[patient.id] ? "bg-red-600 text-white hover:bg-red-700 border-red-600" :
+                                                                    "text-green-600 border-green-200 hover:bg-green-50"
+                                                        }
                                                         onClick={() => handleOpenWhatsAppDialog(patient)}
-                                                        disabled={patient.whatsappSent || patient.status === "Erro"}
+                                                        disabled={patient.whatsappSent}
                                                     >
                                                         <MessageCircle className="w-4 h-4 mr-2" />
-                                                        {patient.whatsappSent ? "Enviado" : "WhatsApp"}
+                                                        {patient.whatsappSent ? "Enviado" : whatsappErrors[patient.id] ? "Erro ao Enviar" : "WhatsApp"}
                                                     </Button>
                                                     <Button
                                                         variant="ghost"
@@ -688,6 +788,101 @@ Posso confirmar sua presença?`;
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            <AlertDialog open={isClearDialogOpen} onOpenChange={setIsClearDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Limpar Lista</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Tem certeza que deseja remover TODOS os registros da lista? Esta ação não pode ser desfeita.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                handleClearList();
+                            }}
+                        >
+                            Confirmar
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <Sheet open={isFilterSidebarOpen} onOpenChange={setIsFilterSidebarOpen}>
+                <SheetContent side="right" className="w-[400px] sm:w-[540px]">
+                    <SheetHeader>
+                        <div className="flex items-center justify-between">
+                            <SheetTitle>Filtros</SheetTitle>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                    setFilterDoctorId("all");
+                                    setFilterHospitalId("all");
+                                    setFilterDate("");
+                                }}
+                                className="text-xs h-8"
+                            >
+                                <X className="w-3 h-3 mr-1" />
+                                Limpar Filtros
+                            </Button>
+                        </div>
+                        <SheetDescription>
+                            Refine a lista de consultas selecionando os critérios abaixo.
+                        </SheetDescription>
+                    </SheetHeader>
+
+                    <div className="py-6 space-y-6">
+                        <div className="space-y-2">
+                            <Label>Médico</Label>
+                            <Select value={filterDoctorId} onValueChange={setFilterDoctorId}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Todos os Médicos" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todos os Médicos</SelectItem>
+                                    {doctors.map(d => (
+                                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Hospital</Label>
+                            <Select value={filterHospitalId} onValueChange={setFilterHospitalId}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Todos os Hospitais" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Todos os Hospitais</SelectItem>
+                                    {hospitals.map(h => (
+                                        <SelectItem key={h.id} value={h.id}>{h.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Data da Consulta</Label>
+                            <Input
+                                type="date"
+                                value={filterDate}
+                                onChange={(e) => setFilterDate(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <SheetFooter className="mt-6">
+                        <SheetClose asChild>
+                            <Button className="w-full">Ver Resultado</Button>
+                        </SheetClose>
+                    </SheetFooter>
+                </SheetContent>
+            </Sheet>
         </div>
     );
 }

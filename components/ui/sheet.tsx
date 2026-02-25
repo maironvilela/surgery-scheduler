@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils"
 // I will implement a pure CSS/React version to be safe and self-contained, or I can check package.json.
 // Let's check package.json first to see if we have radix.
 
+import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 
 const sheetVariants = cva(
@@ -52,16 +53,31 @@ export function Sheet({ children, open: controlledOpen, onOpenChange }: SheetPro
     );
 }
 
-export const SheetTrigger = ({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) => {
+export const SheetTrigger = ({ className, children, asChild = false, ...props }: React.HTMLAttributes<HTMLDivElement> & { asChild?: boolean }) => {
     const context = React.useContext(SheetContext);
+    const Comp = asChild ? Slot : "div"
     return (
-        <div
+        <Comp
             onClick={() => context?.setOpen(true)}
             className={className}
             {...props}
         >
             {children}
-        </div>
+        </Comp>
+    );
+}
+
+export const SheetClose = ({ className, children, asChild = false, ...props }: React.HTMLAttributes<HTMLDivElement> & { asChild?: boolean }) => {
+    const context = React.useContext(SheetContext);
+    const Comp = asChild ? Slot : "div"
+    return (
+        <Comp
+            onClick={() => context?.setOpen(false)}
+            className={className}
+            {...props}
+        >
+            {children}
+        </Comp>
     );
 }
 

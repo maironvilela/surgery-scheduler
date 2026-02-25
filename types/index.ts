@@ -128,5 +128,9 @@ export interface ConsultationItem {
     phone?: string;
     status: string;
     time: string;
+    date: string; // ISO string or YYYY-MM-DD
     whatsappSent?: boolean;
+    doctorId?: string;
+    hospitalId?: string;
+    insurance?: string;
 }

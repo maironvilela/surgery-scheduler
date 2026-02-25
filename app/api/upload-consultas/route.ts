@@ -32,8 +32,9 @@ export async function POST(req: Request) {
     1. Paciente: O nome completo do paciente. IMPORTANTE: Remova rigorosamente qualquer número prefixo e o " - ". Exemplo: se o texto for "2251335 - ANA LETICIA", extraia apenas "ANA LETICIA". Remova espaços em branco extras no início ou fim.
     2. Hora: O horário da consulta (coluna Hora).
     3. Telefone: O número de telefone. Se houver "Celular", use-o. Se não, use "Telefone". Remova todos os caracteres não numéricos.
+    4. Convênio: O nome do convênio ou forma de pagamento (colunas "Convênio" ou "Forma de Pgto").
     
-    Retorne APENAS um array JSON válido contendo objetos com as propriedades: "patientName", "time", "phone".
+    Retorne APENAS um array JSON válido contendo objetos com as propriedades: "patientName", "time", "phone", "insurance".
     Não inclua markdown (como \`\`\`json), apenas o JSON puro.`;
 
         const maxRetries = 3;

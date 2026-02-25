@@ -75,6 +75,7 @@ model Consultation {
   time         String
   whatsappSent Boolean  @default(false)
   date         DateTime @default(now())
+  insurance    String?  // Copied from Patient or typed directly by user
   
   doctorId     String?
   doctor       Doctor?  @relation(fields: [doctorId], references: [id])

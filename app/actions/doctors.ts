@@ -9,7 +9,12 @@ export async function getDoctors() {
         const doctors = await prisma.doctor.findMany({
             orderBy: { name: 'asc' }
         });
-        return doctors as Doctor[];
+        return doctors.map(d => ({
+            ...d,
+            createdAt: d.createdAt.toISOString(),
+            updatedAt: d.updatedAt.toISOString(),
+            status: d.status as 'active' | 'inactive'
+        })) as Doctor[];
     } catch (error) {
         console.error("Failed to fetch doctors:", error);
         return [];
@@ -28,7 +33,12 @@ export async function addDoctor(data: Omit<Doctor, "id" | "createdAt" | "updated
             }
         });
         revalidatePath("/configuracoes"); // Assuming doctors are managed here
-        return doctor;
+        return {
+            ...doctor,
+            createdAt: doctor.createdAt.toISOString(),
+            updatedAt: doctor.updatedAt.toISOString(),
+            status: doctor.status as 'active' | 'inactive'
+        } as Doctor;
     } catch (error) {
         console.error("Failed to add doctor:", error);
         throw new Error("Failed to add doctor");
@@ -48,7 +58,12 @@ export async function updateDoctor(id: string, data: Omit<Doctor, "id" | "create
             }
         });
         revalidatePath("/configuracoes");
-        return doctor;
+        return {
+            ...doctor,
+            createdAt: doctor.createdAt.toISOString(),
+            updatedAt: doctor.updatedAt.toISOString(),
+            status: doctor.status as 'active' | 'inactive'
+        } as Doctor;
     } catch (error) {
         console.error("Failed to update doctor:", error);
         throw new Error("Failed to update doctor");

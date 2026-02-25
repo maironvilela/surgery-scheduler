@@ -14,7 +14,7 @@ import { CommentSection } from "@/components/agenda/comment-section";
 export default function AppointmentDetailsPage() {
     const params = useParams();
     const router = useRouter();
-    const { getSurgery, deleteSurgery, updateSurgery } = useAgenda();
+    const { getSurgery, deleteSurgery, updateSurgery, addComment } = useAgenda();
     const id = params.id as string;
     const surgery = getSurgery(id);
 
@@ -44,20 +44,10 @@ export default function AppointmentDetailsPage() {
     };
 
     const handleAddComment = (content: string) => {
-        const newComment = {
-            id: Math.random().toString(36).substr(2, 9),
-            user: "Usuário Atual", // Mock user
+        addComment(id, {
+            user: "Usuário Atual",
             date: new Date().toISOString(),
             content,
-        };
-
-        const updatedComments = [...(surgery.comments || []), newComment];
-
-        // We need to partial update. Since updateSurgery expects Omit<Surgery, "id" | "createdAt">,
-        // we can spread the current surgery object.
-        updateSurgery(id, {
-            ...surgery,
-            comments: updatedComments
         });
     };
 

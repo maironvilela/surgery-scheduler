@@ -12,7 +12,10 @@ export async function getSurgeries() {
             },
             orderBy: { date: 'asc' }
         });
-        return surgeries as Surgery[];
+        return surgeries.map(s => ({
+            ...s,
+            createdAt: s.createdAt.toISOString()
+        })) as Surgery[];
     } catch (error) {
         console.error("Failed to fetch surgeries:", error);
         return [];
@@ -47,7 +50,10 @@ export async function addSurgery(data: Omit<Surgery, "id" | "createdAt" | "comme
             include: { comments: true }
         });
         revalidatePath("/agenda");
-        return surgery as Surgery;
+        return {
+            ...surgery,
+            createdAt: surgery.createdAt.toISOString()
+        } as Surgery;
     } catch (error) {
         console.error("Failed to add surgery:", error);
         throw new Error("Failed to add surgery");
@@ -76,7 +82,10 @@ export async function updateSurgery(id: string, data: Partial<Omit<Surgery, "id"
             include: { comments: true }
         });
         revalidatePath("/agenda");
-        return surgery as Surgery;
+        return {
+            ...surgery,
+            createdAt: surgery.createdAt.toISOString()
+        } as Surgery;
     } catch (error) {
         console.error("Failed to update surgery:", error);
         throw new Error("Failed to update surgery");

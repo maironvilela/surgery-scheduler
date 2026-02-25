@@ -14,7 +14,7 @@ export default function AgendaPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
 
     const handleCreate = (data: Omit<Surgery, "id" | "createdAt">) => {
-        addSurgery(data);
+        addSurgery({ ...data, comments: data.comments || [] });
         setIsFormOpen(false);
     };
 

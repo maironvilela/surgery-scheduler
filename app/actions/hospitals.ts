@@ -12,7 +12,10 @@ export async function getHospitals() {
             },
             orderBy: { name: 'asc' }
         });
-        return hospitals as Hospital[];
+        return hospitals.map(h => ({
+            ...h,
+            createdAt: h.createdAt.toISOString()
+        })) as Hospital[];
     } catch (error) {
         console.error("Failed to fetch hospitals:", error);
         return [];
@@ -44,7 +47,10 @@ export async function addHospital(data: Omit<Hospital, "id" | "createdAt" | "con
             include: { contacts: true }
         });
         revalidatePath("/configuracoes");
-        return hospital;
+        return {
+            ...hospital,
+            createdAt: hospital.createdAt.toISOString()
+        } as Hospital;
     } catch (error) {
         console.error("Failed to add hospital:", error);
         throw new Error("Failed to add hospital");
@@ -83,7 +89,10 @@ export async function updateHospital(id: string, data: Omit<Hospital, "id" | "cr
             include: { contacts: true }
         });
         revalidatePath("/configuracoes");
-        return hospital;
+        return {
+            ...hospital,
+            createdAt: hospital.createdAt.toISOString()
+        } as Hospital;
     } catch (error) {
         console.error("Failed to update hospital:", error);
         throw new Error("Failed to update hospital");
