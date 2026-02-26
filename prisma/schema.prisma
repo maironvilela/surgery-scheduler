@@ -38,9 +38,9 @@ model Hospital {
 
 model HospitalContact {
   id         String   @id @default(cuid())
-  type       String   // "phone" | "email"
+  type       String // "phone" | "email"
   value      String
-  label      String?  // e.g. "Comercial"
+  label      String? // e.g. "Comercial"
   isPrimary  Boolean  @default(false)
   hospitalId String
   hospital   Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
@@ -49,8 +49,8 @@ model HospitalContact {
 model Patient {
   id           String   @id @default(cuid())
   name         String
-  insurance    String?  // Convênio
-  plan         String?  // Plano
+  insurance    String? // Convênio
+  plan         String? // Plano
   birthDate    String?
   gender       String   @default("other")
   cep          String?
@@ -74,15 +74,17 @@ model Consultation {
   status       String   @default("Pendente")
   time         String
   whatsappSent Boolean  @default(false)
+  isArchived   Boolean  @default(false)
   date         DateTime @default(now())
-  insurance    String?  // Copied from Patient or typed directly by user
+  insurance    String? // Copied from Patient or typed directly by user
+  observations String?  // Observações da consulta
   
-  doctorId     String?
-  doctor       Doctor?  @relation(fields: [doctorId], references: [id])
-  hospitalId   String?
-  hospital     Hospital? @relation(fields: [hospitalId], references: [id])
-  patientId    String?
-  patient      Patient?  @relation(fields: [patientId], references: [id])
+  doctorId   String?
+  doctor     Doctor?   @relation(fields: [doctorId], references: [id])
+  hospitalId String?
+  hospital   Hospital? @relation(fields: [hospitalId], references: [id])
+  patientId  String?
+  patient    Patient?  @relation(fields: [patientId], references: [id])
 }
 
 model Surgery {
@@ -94,48 +96,48 @@ model Surgery {
   hospitalId   String
   hospitalName String
   procedure    String
-  date         String   // YYYY-MM-DD
-  startTime    String   // HH:mm
-  endTime      String   // HH:mm
+  date         String // YYYY-MM-DD
+  startTime    String // HH:mm
+  endTime      String // HH:mm
   room         String
   status       String   @default("scheduled") // scheduled | completed | cancelled | in_progress
   notes        String?
   createdAt    DateTime @default(now())
 
-  comments     Comment[]
+  comments Comment[]
 }
 
 model Comment {
-  id        String   @id @default(cuid())
+  id        String  @id @default(cuid())
   user      String
   date      String
   content   String
   surgeryId String
-  surgery   Surgery  @relation(fields: [surgeryId], references: [id], onDelete: Cascade)
+  surgery   Surgery @relation(fields: [surgeryId], references: [id], onDelete: Cascade)
 }
 
 model Procedure {
-  id                      String   @id @default(cuid())
-  code                    String   @unique
-  name                    String
-  specialty               String
-  fastingTime             String
-  estimatedDuration       String
-  anesthesiaType          String
-  equipment               String
-  materials               String
-  bloodRequirement        String
- teamSize                String
-  recoveryTimePACU        String
-  recoveryTimeICU         String
-  hospitalizationTime     String
-  homeRecoveryTime        String
+  id                       String   @id @default(cuid())
+  code                     String   @unique
+  name                     String
+  specialty                String
+  fastingTime              String
+  estimatedDuration        String
+  anesthesiaType           String
+  equipment                String
+  materials                String
+  bloodRequirement         String
+  teamSize                 String
+  recoveryTimePACU         String
+  recoveryTimeICU          String
+  hospitalizationTime      String
+  homeRecoveryTime         String
   suggestedCertificateTime String
-  consentForm             Boolean  @default(false)
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  consentForm              Boolean  @default(false)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
 
-  reports                 ProcedureReport[]
+  reports ProcedureReport[]
 }
 
 model ProcedureReport {

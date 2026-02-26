@@ -36,9 +36,11 @@ export async function addConsultation(data: Omit<ConsultationItem, "id">) {
                 time: data.time,
                 date: data.date ? new Date(data.date) : undefined,
                 whatsappSent: data.whatsappSent || false,
+                isArchived: data.isArchived || false,
                 doctorId: data.doctorId || undefined,
                 hospitalId: data.hospitalId || undefined,
                 insurance: data.insurance,
+                observations: data.observations,
             }
         });
         revalidatePath("/consultas");
@@ -63,9 +65,11 @@ export async function updateConsultation(id: string, data: Partial<Omit<Consulta
                 time: data.time,
                 date: data.date ? new Date(data.date) : undefined,
                 whatsappSent: data.whatsappSent,
+                isArchived: data.isArchived,
                 doctorId: data.doctorId || undefined,
                 hospitalId: data.hospitalId || undefined,
                 insurance: data.insurance,
+                observations: data.observations,
             }
         });
         revalidatePath("/consultas");

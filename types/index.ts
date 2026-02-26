@@ -130,7 +130,9 @@ export interface ConsultationItem {
     time: string;
     date: string; // ISO string or YYYY-MM-DD
     whatsappSent?: boolean;
+    isArchived?: boolean;
     doctorId?: string;
     hospitalId?: string;
     insurance?: string;
+    observations?: string;
 }

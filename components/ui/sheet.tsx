@@ -15,7 +15,7 @@ import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 
 const sheetVariants = cva(
-    "fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
+    "fixed z-50 gap-4 bg-background p-6 shadow-2xl transition ease-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-500 data-[state=open]:duration-700",
     {
         variants: {
             side: {
@@ -89,7 +89,7 @@ export const SheetContent = ({ className, children, side = "right", ...props }: 
     return (
         <>
             <div
-                className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+                className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm transition-all data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-500 data-[state=open]:duration-700 data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
                 onClick={() => context.setOpen(false)}
             />
             <div
