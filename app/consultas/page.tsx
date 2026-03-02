@@ -152,7 +152,10 @@ export default function ConsultasPage() {
     const [newPatientName, setNewPatientName] = useState("");
     const [newPatientPhone, setNewPatientPhone] = useState("");
     const [newPatientTime, setNewPatientTime] = useState("");
+    const [newPatientInsurance, setNewPatientInsurance] = useState("");
     const [whatsappErrors, setWhatsappErrors] = useState<Record<string, boolean>>({});
+
+    const [exportType, setExportType] = useState<"pdf" | "jpeg" | null>(null);
 
     const handleStatusChange = async (id: string, newStatus: string) => {
         try {
@@ -297,6 +300,7 @@ export default function ConsultasPage() {
     const handleSelectPatient = (patient: any) => {
         setNewPatientName(patient.name);
         setNewPatientPhone(formatPhone(patient.phone || ""));
+        setNewPatientInsurance(patient.insurance || "");
         setShowSuggestions(false);
     };
 
@@ -305,6 +309,7 @@ export default function ConsultasPage() {
         setNewPatientName(patient.patientName);
         setNewPatientPhone(patient.phone || "");
         setNewPatientTime(patient.time);
+        setNewPatientInsurance(patient.insurance || "");
     };
 
     const handleCancelEdit = () => {
@@ -312,6 +317,7 @@ export default function ConsultasPage() {
         setNewPatientName("");
         setNewPatientPhone("");
         setNewPatientTime("");
+        setNewPatientInsurance("");
     };
 
     const handleAddPatient = async () => {
@@ -334,7 +340,7 @@ export default function ConsultasPage() {
             await addPatient({
                 name: newPatientName,
                 phone: cleanPhone,
-                insurance: "",
+                insurance: newPatientInsurance,
                 plan: "",
                 birthDate: "",
                 gender: "other",
@@ -355,6 +361,7 @@ export default function ConsultasPage() {
                     patientName: newPatientName,
                     phone: cleanPhone,
                     time: newPatientTime,
+                    insurance: newPatientInsurance,
                     date: date || new Date().toISOString().split('T')[0]
                 });
                 setPatients(patients.map(p => p.id === editingPatientId ? updated as ConsultationItem : p));
@@ -381,13 +388,14 @@ export default function ConsultasPage() {
                 whatsappSent: false,
                 doctorId: selectedDoctorId,
                 hospitalId: selectedHospitalId,
-                insurance: availablePatients.find(p => p.name.toLowerCase() === newPatientName.toLowerCase())?.insurance || ""
+                insurance: newPatientInsurance
             });
 
             setPatients([...patients, newItem as ConsultationItem]);
             setNewPatientName("");
             setNewPatientPhone("");
             setNewPatientTime("");
+            setNewPatientInsurance("");
             toast.success("Paciente adicionado à lista");
         } catch (error) {
             toast.error("Erro ao adicionar consulta");
@@ -618,12 +626,19 @@ Posso confirmar sua presença?`;
     };
 
     const exportToPDF = async () => {
+        setExportType("pdf");
+        // Let React render the table without the hospital column and with the logo
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
         const tableElement = document.getElementById("history-table-container");
-        if (!tableElement) return;
+        if (!tableElement) {
+            setExportType(null);
+            return;
+        }
 
         // Temporarily adjust styles for better PDF rendering
         const originalStyle = tableElement.style.cssText;
-        const tableWrapper = tableElement.querySelector("div");
+        const tableWrapper = tableElement.querySelector("table")?.parentElement;
         const originalWrapperStyle = tableWrapper?.style.cssText;
 
         // Force basic background and foreground to bypass oklch parsing error in html2canvas
@@ -657,18 +672,46 @@ Posso confirmar sua presença?`;
             const pdfImgWidth = pdfWidth;
             const pdfImgHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-            // Handle multi-page if needed
+            // Load Logo
+            const logoImg = new Image();
+            logoImg.src = "/logo.png";
+            await new Promise((resolve) => {
+                logoImg.onload = resolve;
+                logoImg.onerror = resolve; // proceed even on error
+            });
+
+            const logoAspect = logoImg.width / (logoImg.height || 1);
+            const logoBoxHeight = 28; // mm
+            const logoBoxWidth = logoBoxHeight * logoAspect;
+            const logoMarginY = 10;
+            const logoMarginX = (pdfWidth - logoBoxWidth) / 2;
+
+            const contentStartY = logoBoxHeight + logoMarginY * 2;
+            const tablePageHeight = pdfHeight - contentStartY;
+
             let heightLeft = pdfImgHeight;
-            let position = 0;
+            let position = contentStartY;
 
+            // Page 1
             pdf.addImage(imgData, "PNG", 0, position, pdfImgWidth, pdfImgHeight);
-            heightLeft -= pdfHeight;
+            pdf.addImage(logoImg, "PNG", logoMarginX, logoMarginY, logoBoxWidth, logoBoxHeight);
+            heightLeft -= tablePageHeight;
 
-            while (heightLeft >= 0) {
-                position = heightLeft - pdfImgHeight;
+            while (heightLeft > 0) {
+                position -= tablePageHeight;
                 pdf.addPage();
+
+                // Draw table image shifted
                 pdf.addImage(imgData, "PNG", 0, position, pdfImgWidth, pdfImgHeight);
-                heightLeft -= pdfHeight;
+
+                // Blank out the header overlap
+                pdf.setFillColor(255, 255, 255);
+                pdf.rect(0, 0, pdfWidth, contentStartY, "F");
+
+                // Draw logo
+                pdf.addImage(logoImg, "PNG", logoMarginX, logoMarginY, logoBoxWidth, logoBoxHeight);
+
+                heightLeft -= tablePageHeight;
             }
 
             pdf.save(`historico-consultas-${format(new Date(), "dd-MM-yyyy")}.pdf`);
@@ -682,15 +725,23 @@ Posso confirmar sua presença?`;
             if (tableWrapper && originalWrapperStyle !== undefined) {
                 tableWrapper.style.cssText = originalWrapperStyle;
             }
+            setExportType(null);
         }
     };
 
     const exportToJPEG = async () => {
+        setExportType("jpeg");
+        // Let React render the table without the hospital column and with the logo
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
         const tableElement = document.getElementById("history-table-container");
-        if (!tableElement) return;
+        if (!tableElement) {
+            setExportType(null);
+            return;
+        }
 
         const originalStyle = tableElement.style.cssText;
-        const tableWrapper = tableElement.querySelector("div");
+        const tableWrapper = tableElement.querySelector("table")?.parentElement;
         const originalWrapperStyle = tableWrapper?.style.cssText;
 
         tableElement.style.width = "1000px";
@@ -726,7 +777,25 @@ Posso confirmar sua presença?`;
             if (tableWrapper && originalWrapperStyle !== undefined) {
                 tableWrapper.style.cssText = originalWrapperStyle;
             }
+            setExportType(null);
         }
+    };
+
+    const formatHistoryDate = (dateString?: string) => {
+        if (!dateString) return "-";
+
+        let datePart = dateString;
+        if (dateString.includes('T')) {
+            datePart = dateString.split('T')[0];
+        }
+
+        if (!datePart.includes('-')) {
+            try { return format(new Date(dateString), "dd/MM/yyyy"); }
+            catch { return dateString; }
+        }
+
+        const [y, m, d] = datePart.split('-').map(Number);
+        return format(new Date(y, m - 1, d), "dd/MM/yyyy");
     };
 
     return (
@@ -859,7 +928,7 @@ Posso confirmar sua presença?`;
                         <CardContent className="space-y-6">
                             {/* Add Patient Field */}
                             {/* Add Patient Field */}
-                            <div className="grid gap-4 md:grid-cols-[1fr_150px_100px_100px] items-end border p-4 rounded-lg bg-muted/20">
+                            <div className="grid gap-4 md:grid-cols-[1fr_150px_150px_100px_auto] items-end border p-4 rounded-lg bg-muted/20">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Nome do Paciente</label>
                                     <div className="relative">
@@ -902,6 +971,18 @@ Posso confirmar sua presença?`;
                                             value={newPatientPhone}
                                             maxLength={15}
                                             onChange={(e) => setNewPatientPhone(formatPhone(e.target.value))}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Convênio</label>
+                                    <div className="flex items-center">
+                                        <FileText className="w-4 h-4 mr-2 text-muted-foreground" />
+                                        <Input
+                                            placeholder="Ex: Unimed"
+                                            value={newPatientInsurance}
+                                            onChange={(e) => setNewPatientInsurance(e.target.value)}
                                         />
                                     </div>
                                 </div>
@@ -1311,14 +1392,20 @@ Posso confirmar sua presença?`;
                         </CardHeader>
                         <CardContent>
                             <div className="rounded-md border bg-white" id="history-table-container">
+                                {exportType === "jpeg" && (
+                                    <div className="flex justify-center items-center p-6 bg-white w-full border-b">
+                                        <img src="/logo.png" alt="Logo" className="h-[120px] w-auto object-contain" />
+                                    </div>
+                                )}
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead className="w-[110px]">Data</TableHead>
                                             <TableHead className="w-[350px]">Paciente</TableHead>
-                                            <TableHead className="w-[290px]">Hospital</TableHead>
-                                            <TableHead className="w-[400px]">Observações</TableHead>
+                                            {!exportType && <TableHead className="w-[290px]">Hospital</TableHead>}
+                                            {!exportType && <TableHead className="w-[400px]">Observações</TableHead>}
                                             <TableHead className="w-[120px]">Status</TableHead>
+                                            {exportType && <TableHead className="w-[400px]">Observações</TableHead>}
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -1342,7 +1429,7 @@ Posso confirmar sua presença?`;
                                                     <TableRow key={patient.id}>
                                                         <TableCell className="font-medium">
                                                             <div className="flex flex-col">
-                                                                <span>{format(new Date(patient.date), "dd/MM/yyyy")}</span>
+                                                                <span>{formatHistoryDate(patient.date)}</span>
                                                                 <span className="text-xs text-muted-foreground">{patient.time}</span>
                                                             </div>
                                                         </TableCell>
@@ -1352,15 +1439,19 @@ Posso confirmar sua presença?`;
                                                                 <span className="text-xs text-muted-foreground">{patient.insurance || "-"}</span>
                                                             </div>
                                                         </TableCell>
-                                                        <TableCell>
-                                                            <div className="flex flex-col">
-                                                                <span>{hospitals.find(h => h.id === patient.hospitalId)?.name || "-"}</span>
-                                                                <span className="text-xs text-muted-foreground">{doctors.find(d => d.id === patient.doctorId)?.name || "-"}</span>
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell className="w-[400px] whitespace-pre-wrap break-words" title={patient.observations || ""}>
-                                                            {patient.observations || "-"}
-                                                        </TableCell>
+                                                        {!exportType && (
+                                                            <TableCell>
+                                                                <div className="flex flex-col">
+                                                                    <span>{hospitals.find(h => h.id === patient.hospitalId)?.name || "-"}</span>
+                                                                    <span className="text-xs text-muted-foreground">{doctors.find(d => d.id === patient.doctorId)?.name || "-"}</span>
+                                                                </div>
+                                                            </TableCell>
+                                                        )}
+                                                        {!exportType && (
+                                                            <TableCell className="w-[400px] whitespace-pre-wrap break-words" title={patient.observations || ""}>
+                                                                {patient.observations || "-"}
+                                                            </TableCell>
+                                                        )}
                                                         <TableCell>
                                                             <Badge variant="outline" className={`w-[130px] justify-center text-center ${(patient.status?.trim().toLowerCase() === 'confirmada' || patient.status?.trim().toLowerCase() === 'confirmado') ? 'bg-green-50 text-green-700 border-green-200' :
                                                                 (patient.status?.trim().toLowerCase() === 'cancelada' || patient.status?.trim().toLowerCase() === 'cancelado') ? 'bg-red-50 text-red-700 border-red-200' :
@@ -1373,6 +1464,11 @@ Posso confirmar sua presença?`;
                                                                 {patient.status || 'Pendente'}
                                                             </Badge>
                                                         </TableCell>
+                                                        {exportType && (
+                                                            <TableCell className="w-[400px] whitespace-pre-wrap break-words" title={patient.observations || ""}>
+                                                                {patient.observations || "-"}
+                                                            </TableCell>
+                                                        )}
                                                     </TableRow>
                                                 ))
                                         )}
