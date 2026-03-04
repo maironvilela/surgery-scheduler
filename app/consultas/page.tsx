@@ -188,12 +188,25 @@ export default function ConsultasPage() {
 
     const weekDay = useMemo(() => {
         if (!date) return "";
-        // Create date object and adjust for timezone if necessary or just use string parsing
-        // date input returns YYYY-MM-DD
         const [year, month, day] = date.split('-').map(Number);
         const dateObj = new Date(year, month - 1, day);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const compareDate = new Date(dateObj);
+        compareDate.setHours(0, 0, 0, 0);
+
+        if (compareDate.getTime() === today.getTime()) {
+            return "hoje";
+        } else if (compareDate.getTime() === tomorrow.getTime()) {
+            return "amanhã";
+        }
+
         const dayName = format(dateObj, 'EEEE', { locale: ptBR });
-        return dayName.charAt(0).toUpperCase() + dayName.slice(1);
+        return dayName.toLowerCase();
     }, [date]);
 
     const formattedDate = useMemo(() => {
@@ -1113,10 +1126,9 @@ Posso confirmar sua presença?`;
                                                                             "text-green-600 border-green-200 hover:bg-green-50"
                                                                 }
                                                                 onClick={() => handleOpenWhatsAppDialog(patient)}
-                                                                disabled={patient.whatsappSent}
                                                             >
                                                                 <MessageCircle className="w-4 h-4 mr-2" />
-                                                                {patient.whatsappSent ? "Enviado" : whatsappErrors[patient.id] ? "Erro" : "WhatsApp"}
+                                                                {patient.whatsappSent ? "Reenviar" : whatsappErrors[patient.id] ? "Erro" : "WhatsApp"}
                                                             </Button>
                                                             <Button
                                                                 variant="outline"

@@ -29,7 +29,7 @@ export async function POST(req: Request) {
         const prompt = `Analise este documento ou imagem contendo uma lista de consultas.
     Extraia as seguintes informações para cada paciente listado:
     
-    1. Paciente: O nome completo do paciente. IMPORTANTE: Remova rigorosamente qualquer número prefixo e o " - ". Exemplo: se o texto for "2251335 - ANA LETICIA", extraia apenas "ANA LETICIA". Remova espaços em branco extras no início ou fim.
+    1. Paciente: O nome completo do paciente. IMPORTANTE: Remova rigorosamente qualquer número prefixo e o " - ". Exemplo: se o texto for "2251335 - ANA LETICIA", extraia apenas "ANA LETICIA". Remova também qualquer menção à idade (ex: "47 anos", "47a"). Remova espaços em branco extras no início ou fim.
     2. Hora: O horário da consulta (coluna Hora).
     3. Telefone: O número de telefone. Se houver "Celular", use-o. Se não, use "Telefone". Remova todos os caracteres não numéricos.
     4. Convênio: O nome do convênio ou forma de pagamento (colunas "Convênio" ou "Forma de Pgto").
@@ -64,9 +64,17 @@ export async function POST(req: Request) {
                 try {
                     const data = JSON.parse(cleanedText);
 
-                    // Normalize phone numbers
+                    // Normalize data
                     if (Array.isArray(data)) {
                         data.forEach((item: any) => {
+                            if (item.patientName) {
+                                // Strip age suffixes (e.g., "47 anos", "47a") from name
+                                item.patientName = item.patientName
+                                    .replace(/\s\d+\s*anos/i, "")
+                                    .replace(/\s\d+a$/i, "")
+                                    .trim();
+                            }
+
                             if (item.phone) {
                                 // Remove non-numeric characters to check length
                                 const digits = item.phone.replace(/\D/g, "");
