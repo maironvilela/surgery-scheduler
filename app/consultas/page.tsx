@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Trash2, MessageCircle, Clock, Plus, Loader2, Upload, Pencil, User, Filter, X, MoreHorizontal, FileText, Archive, Search, Download, FileJson, ImageIcon, Check, ChevronsUpDown } from "lucide-react";
+import { Trash2, MessageCircle, Clock, Plus, Loader2, Upload, Pencil, User, Filter, X, MoreHorizontal, FileText, Archive, Search, Download, FileJson, ImageIcon, Check, ChevronsUpDown, ArchiveRestore } from "lucide-react";
 import jsPDF from "jspdf";
 import { toPng, toJpeg } from "html-to-image";
 
@@ -154,6 +154,7 @@ export default function ConsultasPage() {
     const [newPatientTime, setNewPatientTime] = useState("");
     const [newPatientInsurance, setNewPatientInsurance] = useState("");
     const [whatsappErrors, setWhatsappErrors] = useState<Record<string, boolean>>({});
+    const [whatsappResent, setWhatsappResent] = useState<Record<string, boolean>>({});
 
     const [exportType, setExportType] = useState<"pdf" | "jpeg" | null>(null);
 
@@ -448,6 +449,33 @@ export default function ConsultasPage() {
         }
     };
 
+    const handleUnarchivePatient = async (id: string) => {
+        try {
+            const updated = await updateConsultation(id, { isArchived: false });
+
+            // Refresh the current daily patients list if the date matches
+            const currentDayStr = date || new Date().toISOString().split('T')[0];
+            const updatedDateStr = updated.date.split('T')[0];
+
+            if (currentDayStr === updatedDateStr) {
+                setPatients(prev => {
+                    const exists = prev.find(p => p.id === id);
+                    if (exists) {
+                        return prev.map(p => p.id === id ? updated as ConsultationItem : p);
+                    }
+                    return [...prev, updated as ConsultationItem];
+                });
+            }
+
+            // Update the history list (allPatients)
+            setAllPatients(prev => prev.map(p => p.id === id ? updated as ConsultationItem : p));
+
+            toast.success("Consulta restaurada para a lista principal");
+        } catch (error) {
+            toast.error("Erro ao desarquivar consulta");
+        }
+    };
+
     const handleClearList = async () => {
         try {
             await deleteAllConsultations();
@@ -527,6 +555,12 @@ Posso confirmar sua presença?`;
                 whatsappSent: true,
                 status: "Aguardando"
             });
+
+            // If it was already sent, mark as resent in this session
+            if (patientToMessage.whatsappSent) {
+                setWhatsappResent(prev => ({ ...prev, [patientToMessage.id]: true }));
+            }
+
             setPatients(patients.map(p =>
                 p.id === patientToMessage.id ? updated as ConsultationItem : p
             ));
@@ -1126,6 +1160,7 @@ Posso confirmar sua presença?`;
                                                                             "text-green-600 border-green-200 hover:bg-green-50"
                                                                 }
                                                                 onClick={() => handleOpenWhatsAppDialog(patient)}
+                                                                disabled={isSending || (patient.whatsappSent && whatsappResent[patient.id])}
                                                             >
                                                                 <MessageCircle className="w-4 h-4 mr-2" />
                                                                 {patient.whatsappSent ? "Reenviar" : whatsappErrors[patient.id] ? "Erro" : "WhatsApp"}
@@ -1417,6 +1452,7 @@ Posso confirmar sua presença?`;
                                             {!exportType && <TableHead className="w-[290px]">Hospital</TableHead>}
                                             {!exportType && <TableHead className="w-[400px]">Observações</TableHead>}
                                             <TableHead className="w-[120px]">Status</TableHead>
+                                            {!exportType && <TableHead className="text-right w-[100px]">Ações</TableHead>}
                                             {exportType && <TableHead className="w-[400px]">Observações</TableHead>}
                                         </TableRow>
                                     </TableHeader>
@@ -1479,6 +1515,19 @@ Posso confirmar sua presença?`;
                                                         {exportType && (
                                                             <TableCell className="w-[400px] whitespace-pre-wrap break-words" title={patient.observations || ""}>
                                                                 {patient.observations || "-"}
+                                                            </TableCell>
+                                                        )}
+                                                        {!exportType && (
+                                                            <TableCell className="text-right">
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="icon"
+                                                                    className="text-blue-600 border-slate-200 hover:text-blue-700 hover:bg-blue-50"
+                                                                    onClick={() => handleUnarchivePatient(patient.id)}
+                                                                    title="Desarquivar"
+                                                                >
+                                                                    <ArchiveRestore className="w-4 h-4" />
+                                                                </Button>
                                                             </TableCell>
                                                         )}
                                                     </TableRow>
