@@ -479,7 +479,7 @@ export default function ConsultasPage() {
     const handleClearList = async () => {
         try {
             await deleteAllConsultations();
-            setPatients([]);
+            setPatients(patients.filter(p => p.isArchived));
             setIsClearDialogOpen(false);
             toast.success("Lista limpa com sucesso!");
         } catch (error) {

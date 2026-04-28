@@ -15,16 +15,18 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "O arquivo deve ser um PDF ou Imagem (JPG, PNG, WEBP)" }, { status: 400 });
         }
 
+        const apiKey = process.env.GEMINI_API_KEY;
+
+        if (!apiKey) {
+            return NextResponse.json({ error: "Variável GEMINI_API_KEY não configurada" }, { status: 500 });
+        }
+
         const buffer = await file.arrayBuffer();
         const base64Data = Buffer.from(buffer).toString("base64");
 
-        const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) {
-            return NextResponse.json({ error: "Chave de API do Gemini não configurada" }, { status: 500 });
-        }
-
+        const modelName = process.env.GEMINI_MODEL || "gemini-2.0-flash";
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        const model = genAI.getGenerativeModel({ model: modelName });
 
         const prompt = `Analise este documento ou imagem contendo uma lista de consultas.
     Extraia as seguintes informações para cada paciente listado:
@@ -38,10 +40,10 @@ export async function POST(req: Request) {
     Não inclua markdown (como \`\`\`json), apenas o JSON puro.`;
 
         const maxRetries = 3;
-        let textStart = 0;
 
         for (let i = 0; i < maxRetries; i++) {
             try {
+                console.log(`Iniciando tentativa ${i + 1} com Gemini...`);
                 const result = await model.generateContent([
                     {
                         inlineData: {
@@ -49,13 +51,14 @@ export async function POST(req: Request) {
                             mimeType: file.type,
                         },
                     },
-                    prompt,
+                    { text: prompt },
                 ]);
 
-                console.log({ result });
-                const responseText = result.response.text();
+                const response = await result.response;
+                const responseText = response.text() || "";
+                console.log("Resposta bruta da IA recebida.");
 
-                // Clean up potential markdown code blocks
+                // Limpa possíveis blocos de markdown
                 const cleanedText = responseText
                     .replace(/^```json\s*/, "")
                     .replace(/^```\s*/, "")
@@ -64,11 +67,9 @@ export async function POST(req: Request) {
                 try {
                     const data = JSON.parse(cleanedText);
 
-                    // Normalize data
                     if (Array.isArray(data)) {
                         data.forEach((item: any) => {
                             if (item.patientName) {
-                                // Strip age suffixes (e.g., "47 anos", "47a") from name
                                 item.patientName = item.patientName
                                     .replace(/\s\d+\s*anos/i, "")
                                     .replace(/\s\d+a$/i, "")
@@ -76,9 +77,7 @@ export async function POST(req: Request) {
                             }
 
                             if (item.phone) {
-                                // Remove non-numeric characters to check length
                                 const digits = item.phone.replace(/\D/g, "");
-                                // If length is 8 or 9 (standard mobile/fixed without DD), add 31
                                 if (digits.length === 8 || digits.length === 9) {
                                     item.phone = `31${digits}`;
                                 }
@@ -89,31 +88,37 @@ export async function POST(req: Request) {
                     return NextResponse.json(data);
                 } catch (parseError) {
                     console.error("Erro ao fazer parse do JSON do Gemini:", responseText);
-                    return NextResponse.json({ error: "Falha ao processar resposta da IA" }, { status: 500 });
+                    return NextResponse.json({ 
+                        error: "A IA retornou um formato inválido",
+                        details: responseText.substring(0, 100)
+                    }, { status: 500 });
                 }
 
             } catch (error: any) {
-                console.error(`Tentativa ${i + 1} falhou:`, error);
+                console.error(`Erro detalhado na tentativa ${i + 1}:`, {
+                    message: error.message,
+                    status: error.status,
+                    stack: error.stack
+                });
 
-                if (error.status === 429 && i < maxRetries - 1) {
-                    const delay = 5000 * (i + 1); // 5s, 10s...
-                    console.log(`Aguardando ${delay}ms antes de tentar novamente...`);
+                const isRateLimit = error?.status === 429 || error?.message?.includes("429") || error?.message?.includes("quota");
+                if (isRateLimit && i < maxRetries - 1) {
+                    const delay = 5000 * (i + 1);
+                    console.log(`Aguardando ${delay}ms devido a limite de cota...`);
                     await new Promise(resolve => setTimeout(resolve, delay));
                     continue;
                 }
 
-                // If it's the last retry or not a 429 error, throw it to be caught by the outer catch
                 if (i === maxRetries - 1) {
-                    // If 429 persisted, return a specific user friendly error
-                    if (error.status === 429) {
-                        return NextResponse.json({ error: "O serviço de IA está sobrecarregado no momento. Por favor, tente novamente em alguns segundos." }, { status: 429 });
+                    if (isRateLimit) {
+                        return NextResponse.json({ error: "Limite de cota atingido na API do Google. Tente novamente em 1 minuto." }, { status: 429 });
                     }
-                    throw error;
+                    return NextResponse.json({ error: `Erro na comunicação com a IA: ${error.message}` }, { status: 500 });
                 }
             }
         }
-    } catch (error) {
-        console.error("Erro no upload:", error);
-        return NextResponse.json({ error: "Erro interno no servidor" }, { status: 500 });
+    } catch (error: any) {
+        console.error("Erro fatal no upload:", error);
+        return NextResponse.json({ error: "Erro interno no servidor", details: error.message }, { status: 500 });
     }
 }

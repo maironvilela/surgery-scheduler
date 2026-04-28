@@ -97,7 +97,11 @@ export async function deleteConsultation(id: string) {
 
 export async function deleteAllConsultations() {
     try {
-        await prisma.consultation.deleteMany();
+        await prisma.consultation.deleteMany({
+            where: {
+                isArchived: false
+            }
+        });
         revalidatePath("/consultas");
     } catch (error) {
         console.error("Failed to clear consultations:", error);
