@@ -1,6 +1,8 @@
 import { PrismaClient } from '@prisma/client'
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
+import { PrismaPg } from '@prisma/adapter-pg'
 import Database from 'better-sqlite3'
+import { Pool } from 'pg'
 
 /**
  * Banco de dados SQLite em memória (via arquivo temporário em /tmp).
@@ -163,6 +165,17 @@ function initSchema(db: InstanceType<typeof Database>) {
 }
 
 function createPrismaClient() {
+    const isPostgres = process.env.DB_TARGET === 'postgres' || 
+                       (process.env.DATABASE_URL && (process.env.DATABASE_URL.startsWith('postgres://') || process.env.DATABASE_URL.startsWith('postgresql://')))
+
+    if (isPostgres) {
+        console.log('Initializing Prisma Client with PostgreSQL')
+        const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+        const adapter = new PrismaPg(pool)
+        return new PrismaClient({ adapter })
+    }
+
+    console.log('Initializing Prisma Client with SQLite')
     // Inicializa o banco e aplica o schema via better-sqlite3 diretamente
     const db = new Database(DB_PATH)
     initSchema(db)
