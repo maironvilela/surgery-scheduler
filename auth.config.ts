@@ -5,6 +5,8 @@ import type { NextAuthConfig } from "next-auth";
  * NÃO deve importar Prisma, bcrypt ou drivers Node.js (pg, sqlite).
  */
 export const authConfig = {
+    trustHost: true,
+    secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "daya-surgery-scheduler-secret-key-2026",
     pages: {
         signIn: "/login",
         error: "/login",

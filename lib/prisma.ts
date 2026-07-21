@@ -10,7 +10,7 @@ declare global {
 function createPrismaClient() {
     const connectionString =
         process.env.DATABASE_URL ||
-        'postgresql://postgres:postgres@localhost:5432/agenda?schema=public'
+        'postgresql://postgres:daya@880702@34.23.28.141:5432/agenda?schema=public'
 
     const pool = new Pool({ connectionString })
     const adapter = new PrismaPg(pool)
