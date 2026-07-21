@@ -20,6 +20,32 @@ import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaPg } from "@prisma/adapter-pg";
 import Database from "better-sqlite3";
 import { Pool } from "pg";
+import { readFileSync } from "fs";
+import { resolve } from "path";
+
+// ─── Carrega o .env manualmente ──────────────────────────────────────────────
+// ts-node não carrega .env automaticamente (ao contrário do Next.js).
+// Usamos fs para carregar o arquivo sem dependências externas.
+(function loadEnv() {
+    try {
+        const envPath = resolve(process.cwd(), ".env");
+        const lines = readFileSync(envPath, "utf8").split("\n");
+        for (const line of lines) {
+            const match = line.match(/^([^#\s][^=]*)\s*=\s*(.*)$/);
+            if (match) {
+                const key = match[1].trim();
+                // Remove aspas envolventes se existirem; não sobrescreve vars já definidas
+                const value = match[2].trim().replace(/^["']|["']$/g, "");
+                if (!process.env[key]) {
+                    process.env[key] = value;
+                }
+            }
+        }
+    } catch {
+        // .env não encontrado — continua com as vars de ambiente existentes
+    }
+})();
+
 
 // ─── Leitura dos argumentos CLI ──────────────────────────────────────────────
 
@@ -60,6 +86,7 @@ if (!["admin", "user"].includes(role)) {
 // ─── Conexão com o banco ──────────────────────────────────────────────────────
 
 function createClient(): PrismaClient {
+    // Determina o banco com base nas variáveis de ambiente (mesmo critério do lib/prisma.ts)
     const isPostgres =
         process.env.DB_TARGET === "postgres" ||
         (process.env.DATABASE_URL &&

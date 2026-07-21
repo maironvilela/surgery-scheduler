@@ -175,13 +175,13 @@ function initSchema(db: InstanceType<typeof Database>) {
 }
 
 function createPrismaClient() {
-    const isDev = process.env.NODE_ENV !== 'production';
+    // Determina o banco com base nas variáveis de ambiente (DB_TARGET e DATABASE_URL)
+    const isPostgres =
+        process.env.DB_TARGET === 'postgres' ||
+        (process.env.DATABASE_URL &&
+            (process.env.DATABASE_URL.startsWith('postgres://') ||
+                process.env.DATABASE_URL.startsWith('postgresql://')));
 
-    // Em desenvolvimento, força o uso do SQLite. Em produção, verifica a configuração.
-    const isPostgres = !isDev && (
-        process.env.DB_TARGET === 'postgres' || 
-        (process.env.DATABASE_URL && (process.env.DATABASE_URL.startsWith('postgres://') || process.env.DATABASE_URL.startsWith('postgresql://')))
-    );
 
     if (isPostgres) {
         console.log('Initializing Prisma Client with PostgreSQL')
