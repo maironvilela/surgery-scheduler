@@ -5,13 +5,15 @@
  *   npx ts-node --compiler-options '{"module":"CommonJS"}' scripts/create-user.ts \
  *     --email=admin@gmail.com \
  *     --password=MinhaSenh@123 \
- *     --name="Mairón Vilela"
+ *     --name="Mairón Vilela" \
+ *     --mustChangePassword=true
  *
  * Opções:
- *   --email     E-mail do usuário (obrigatório)
- *   --password  Senha do usuário (obrigatório, mín. 8 caracteres)
- *   --name      Nome do usuário (obrigatório)
- *   --role      Papel: "admin" ou "user" (padrão: "user")
+ *   --email               E-mail do usuário (obrigatório)
+ *   --password            Senha do usuário (obrigatório, mín. 8 caracteres)
+ *   --name                Nome do usuário (obrigatório)
+ *   --role                Papel: "admin" ou "user" (padrão: "user")
+ *   --mustChangePassword  Exigir troca de senha no 1º acesso: "true" ou "false" (padrão: "true")
  */
 
 import bcrypt from "bcryptjs";
@@ -24,8 +26,6 @@ import { readFileSync } from "fs";
 import { resolve } from "path";
 
 // ─── Carrega o .env manualmente ──────────────────────────────────────────────
-// ts-node não carrega .env automaticamente (ao contrário do Next.js).
-// Usamos fs para carregar o arquivo sem dependências externas.
 (function loadEnv() {
     try {
         const envPath = resolve(process.cwd(), ".env");
@@ -34,7 +34,6 @@ import { resolve } from "path";
             const match = line.match(/^([^#\s][^=]*)\s*=\s*(.*)$/);
             if (match) {
                 const key = match[1].trim();
-                // Remove aspas envolventes se existirem; não sobrescreve vars já definidas
                 const value = match[2].trim().replace(/^["']|["']$/g, "");
                 if (!process.env[key]) {
                     process.env[key] = value;
@@ -42,10 +41,9 @@ import { resolve } from "path";
             }
         }
     } catch {
-        // .env não encontrado — continua com as vars de ambiente existentes
+        // Continua com vars existentes
     }
 })();
-
 
 // ─── Leitura dos argumentos CLI ──────────────────────────────────────────────
 
@@ -59,6 +57,8 @@ const email = getArg("email");
 const password = getArg("password");
 const name = getArg("name");
 const role = getArg("role") ?? "user";
+const mustChangeArg = getArg("mustChangePassword");
+const mustChangePassword = mustChangeArg === "false" ? false : true;
 
 // ─── Validações ───────────────────────────────────────────────────────────────
 
@@ -86,7 +86,6 @@ if (!["admin", "user"].includes(role)) {
 // ─── Conexão com o banco ──────────────────────────────────────────────────────
 
 function createClient(): PrismaClient {
-    // Determina o banco com base nas variáveis de ambiente (mesmo critério do lib/prisma.ts)
     const isPostgres =
         process.env.DB_TARGET === "postgres" ||
         (process.env.DATABASE_URL &&
@@ -104,7 +103,6 @@ function createClient(): PrismaClient {
         dbPath = process.env.SQLITE_URL.replace(/^file:/, "");
     }
 
-    // Garante que a tabela User existe no SQLite
     const db = new Database(dbPath);
     db.exec(`
         CREATE TABLE IF NOT EXISTS "User" (
@@ -113,6 +111,7 @@ function createClient(): PrismaClient {
             "name" TEXT NOT NULL,
             "passwordHash" TEXT NOT NULL,
             "role" TEXT NOT NULL DEFAULT 'user',
+            "mustChangePassword" BOOLEAN NOT NULL DEFAULT true,
             "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
         CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");
@@ -129,7 +128,6 @@ async function main() {
     const prisma = createClient();
 
     try {
-        // Hash da senha com cost factor 12 (seguro e rápido o suficiente)
         const passwordHash = await bcrypt.hash(password!, 12);
 
         const existing = await prisma.user.findUnique({
@@ -137,17 +135,21 @@ async function main() {
         });
 
         if (existing) {
-            // Atualiza senha e nome se o usuário já existir
             await prisma.user.update({
                 where: { email: email!.toLowerCase().trim() },
-                data: { passwordHash, name: name!, role },
+                data: {
+                    passwordHash,
+                    name: name!,
+                    role,
+                    mustChangePassword,
+                },
             });
             console.log(`\n✅ Usuário atualizado com sucesso!`);
-            console.log(`   E-mail : ${email}`);
-            console.log(`   Nome   : ${name}`);
-            console.log(`   Role   : ${role}\n`);
+            console.log(`   E-mail              : ${email}`);
+            console.log(`   Nome                : ${name}`);
+            console.log(`   Role                : ${role}`);
+            console.log(`   Exigir troca 1º acc : ${mustChangePassword ? "Sim" : "Não"}\n`);
         } else {
-            // Cria novo usuário
             const { v4: uuidv4 } = await import("crypto").then((m) => ({
                 v4: () => m.randomUUID(),
             }));
@@ -158,12 +160,14 @@ async function main() {
                     name: name!,
                     passwordHash,
                     role,
+                    mustChangePassword,
                 },
             });
             console.log(`\n✅ Usuário criado com sucesso!`);
-            console.log(`   E-mail : ${email}`);
-            console.log(`   Nome   : ${name}`);
-            console.log(`   Role   : ${role}\n`);
+            console.log(`   E-mail              : ${email}`);
+            console.log(`   Nome                : ${name}`);
+            console.log(`   Role                : ${role}`);
+            console.log(`   Exigir troca 1º acc : ${mustChangePassword ? "Sim" : "Não"}\n`);
         }
     } catch (error) {
         console.error("\n❌ Erro ao criar/atualizar usuário:", (error as Error).message, "\n");

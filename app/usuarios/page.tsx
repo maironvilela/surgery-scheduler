@@ -18,6 +18,8 @@ import {
     EyeOff,
     Check,
     Loader2,
+    Clock,
+    CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
@@ -67,6 +69,7 @@ export default function UsuariosPage() {
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [role, setRole] = useState("user");
+    const [mustChangePassword, setMustChangePassword] = useState(true);
     const [showPassword, setShowPassword] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -110,6 +113,7 @@ export default function UsuariosPage() {
         setPassword("");
         setConfirmPassword("");
         setRole("user");
+        setMustChangePassword(true);
         setShowPassword(false);
         setIsDialogOpen(true);
     };
@@ -122,6 +126,7 @@ export default function UsuariosPage() {
         setPassword("");
         setConfirmPassword("");
         setRole(user.role);
+        setMustChangePassword(user.mustChangePassword);
         setShowPassword(false);
         setIsDialogOpen(true);
     };
@@ -138,7 +143,7 @@ export default function UsuariosPage() {
         // Validation for new user
         if (!editingUser) {
             if (!password) {
-                toast.warning("Defina uma senha para o novo usuário.");
+                toast.warning("Defina uma senha provisória para o novo usuário.");
                 return;
             }
             if (password.length < 8) {
@@ -168,6 +173,7 @@ export default function UsuariosPage() {
                     name,
                     email,
                     role,
+                    mustChangePassword,
                     ...(password ? { password } : {}),
                 });
                 toast.success("Usuário atualizado com sucesso!");
@@ -177,6 +183,7 @@ export default function UsuariosPage() {
                     email,
                     password,
                     role,
+                    mustChangePassword,
                 });
                 toast.success("Usuário cadastrado com sucesso!");
             }
@@ -216,7 +223,7 @@ export default function UsuariosPage() {
                         Cadastro de Usuários
                     </h1>
                     <p className="text-sm text-slate-500">
-                        Gerencie os usuários que possuem acesso ao sistema
+                        Gerencie os acessos. Novos usuários alteram a senha no primeiro acesso.
                     </p>
                 </div>
                 <Button
@@ -275,6 +282,7 @@ export default function UsuariosPage() {
                                         <TableHead>Usuário</TableHead>
                                         <TableHead>E-mail</TableHead>
                                         <TableHead>Nível de Acesso</TableHead>
+                                        <TableHead>Status da Senha</TableHead>
                                         <TableHead>Data de Cadastro</TableHead>
                                         <TableHead className="text-right">Ações</TableHead>
                                     </TableRow>
@@ -323,6 +331,19 @@ export default function UsuariosPage() {
                                                     ) : (
                                                         <Badge variant="secondary" className="bg-slate-100 text-slate-700 hover:bg-slate-100 border-slate-200 gap-1 font-medium">
                                                             <UserIcon className="h-3 w-3" /> Usuário
+                                                        </Badge>
+                                                    )}
+                                                </TableCell>
+
+                                                {/* Status da Senha */}
+                                                <TableCell>
+                                                    {user.mustChangePassword ? (
+                                                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 gap-1 font-medium text-xs">
+                                                            <Clock className="h-3 w-3 text-amber-600" /> Senha Provisória (1º Acesso)
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 gap-1 font-medium text-xs">
+                                                            <CheckCircle2 className="h-3 w-3 text-emerald-600" /> Senha Definida
                                                         </Badge>
                                                     )}
                                                 </TableCell>
@@ -377,7 +398,7 @@ export default function UsuariosPage() {
                         <DialogDescription>
                             {editingUser
                                 ? "Atualize as informações do usuário. Deixe a senha em branco se não quiser alterá-la."
-                                : "Preencha os dados abaixo para cadastrar um novo acesso ao sistema."}
+                                : "Cadastre uma senha provisória. O usuário será solicitado a alterá-la no primeiro acesso."}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -438,14 +459,14 @@ export default function UsuariosPage() {
                         {/* Senha */}
                         <div className="space-y-1.5">
                             <Label htmlFor="user-password" className="text-xs font-semibold text-slate-700">
-                                {editingUser ? "Nova Senha (opcional)" : "Senha de Acesso *"}
+                                {editingUser ? "Redefinir Senha (opcional)" : "Senha Provisória *"}
                             </Label>
                             <div className="relative">
                                 <Key className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                                 <Input
                                     id="user-password"
                                     type={showPassword ? "text" : "password"}
-                                    placeholder={editingUser ? "Preencha apenas para alterar" : "Mínimo 8 caracteres"}
+                                    placeholder={editingUser ? "Preencha apenas se quiser alterar" : "Mínimo 8 caracteres"}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     className="pl-9 pr-10"
@@ -465,7 +486,7 @@ export default function UsuariosPage() {
                         {(password || !editingUser) && (
                             <div className="space-y-1.5">
                                 <Label htmlFor="user-confirm-password" className="text-xs font-semibold text-slate-700">
-                                    Confirmar Senha *
+                                    Confirmar Senha Provisória *
                                 </Label>
                                 <div className="relative">
                                     <Key className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
@@ -481,6 +502,19 @@ export default function UsuariosPage() {
                                 </div>
                             </div>
                         )}
+
+                        {/* Checkbox Exigir Troca de Senha */}
+                        <div className="pt-1">
+                            <label className="flex items-center gap-2.5 cursor-pointer text-xs font-medium text-slate-700 select-none">
+                                <input
+                                    type="checkbox"
+                                    checked={mustChangePassword}
+                                    onChange={(e) => setMustChangePassword(e.target.checked)}
+                                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                Exigir alteração de senha no primeiro acesso
+                            </label>
+                        </div>
 
                         <DialogFooter className="pt-4">
                             <Button
