@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { authConfig } from "./auth.config";
 import prisma from "@/lib/prisma";
+import { sendAuthFailureAlert } from "@/lib/whatsapp-alert";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
     ...authConfig,
@@ -51,6 +52,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
                     if (!user || !isValid) {
                         console.warn("[Auth] Tentativa de login com credenciais inválidas.");
+                        // Dispara alerta no WhatsApp de segurança (sem bloquear resposta de login)
+                        sendAuthFailureAlert(credentials.email).catch((err) =>
+                            console.error("[Auth] Falha ao enviar alerta de segurança:", err)
+                        );
                         return null;
                     }
 
