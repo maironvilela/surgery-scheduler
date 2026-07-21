@@ -150,3 +150,12 @@ model ProcedureReport {
   procedureId String
   procedure   Procedure @relation(fields: [procedureId], references: [id], onDelete: Cascade)
 }
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("user") // "admin" | "user"
+  createdAt    DateTime @default(now())
+}

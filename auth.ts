@@ -1,72 +1,95 @@
 import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
-
-/**
- * Retorna a lista de e-mails autorizados a partir da variável de ambiente
- * ALLOWED_EMAILS (separados por vírgula). A validação ocorre exclusivamente
- * no servidor via callback signIn — nunca exposta ao cliente.
- */
-function getAllowedEmails(): string[] {
-    const raw = process.env.ALLOWED_EMAILS ?? "";
-    return raw
-        .split(",")
-        .map((e) => e.trim().toLowerCase())
-        .filter(Boolean);
-}
+import Credentials from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
+import prisma from "@/lib/prisma";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
     providers: [
-        Google({
-            clientId: process.env.GOOGLE_CLIENT_ID!,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+        Credentials({
+            name: "credentials",
+            credentials: {
+                email: { label: "E-mail", type: "email" },
+                password: { label: "Senha", type: "password" },
+            },
+            /**
+             * Valida as credenciais do usuário.
+             * Executado no servidor. Retorna null em QUALQUER falha (e-mail ou senha) —
+             * sem revelar qual campo está incorreto (evita enumeração de usuários).
+             * NOTA DE SEGURANÇA: credenciais nunca são logadas.
+             */
+            async authorize(credentials) {
+                if (
+                    !credentials?.email ||
+                    !credentials?.password ||
+                    typeof credentials.email !== "string" ||
+                    typeof credentials.password !== "string"
+                ) {
+                    return null;
+                }
+
+                try {
+                    // Busca o usuário pelo e-mail (query parametrizada via Prisma — sem SQL injection)
+                    const user = await prisma.user.findUnique({
+                        where: { email: credentials.email.toLowerCase().trim() },
+                        select: {
+                            id: true,
+                            email: true,
+                            name: true,
+                            passwordHash: true,
+                            role: true,
+                        },
+                    });
+
+                    // Usuário não encontrado — retorna null com resposta em tempo constante
+                    // para evitar timing attacks (sempre compara mesmo sem usuário)
+                    const dummyHash =
+                        "$2b$12$invalidhashfortimingprotectiononlyxxxxxxxxxxxxxxxxxxxxxxx";
+                    const isValid = await bcrypt.compare(
+                        credentials.password,
+                        user?.passwordHash ?? dummyHash
+                    );
+
+                    if (!user || !isValid) {
+                        // Loga apenas status, nunca as credenciais
+                        console.warn("[Auth] Tentativa de login com credenciais inválidas.");
+                        return null;
+                    }
+
+                    return {
+                        id: user.id,
+                        email: user.email,
+                        name: user.name,
+                        // image não disponível no modo credentials (sem OAuth)
+                    };
+                } catch (error) {
+                    // Erro de banco: falha segura (fail-close)
+                    console.error("[Auth] Erro ao verificar credenciais:", (error as Error).message);
+                    return null;
+                }
+            },
         }),
     ],
     pages: {
         signIn: "/login",
-        // Página de erro customizada (mostra mensagem de acesso negado)
         error: "/login",
     },
     callbacks: {
         /**
-         * signIn callback — validação da whitelist de e-mails.
-         * Executado no servidor. Retorna false bloqueia o login.
-         * NOTA DE SEGURANÇA: o e-mail não é logado para evitar exposição de PII.
-         */
-        signIn({ user }) {
-            const allowedEmails = getAllowedEmails();
-
-            // Se a lista estiver vazia, bloqueia todos por segurança (fail-close)
-            if (allowedEmails.length === 0) {
-                console.warn(
-                    "[Auth] ALLOWED_EMAILS está vazia — acesso bloqueado para todos os usuários."
-                );
-                return false;
-            }
-
-            const userEmail = user.email?.toLowerCase() ?? "";
-            const isAllowed = allowedEmails.includes(userEmail);
-
-            if (!isAllowed) {
-                // Loga apenas status, nunca o e-mail em si (proteção de PII)
-                console.warn("[Auth] Tentativa de login com e-mail não autorizado.");
-                return "/login?error=AccessDenied";
-            }
-
-            return true;
-        },
-
-        /**
-         * session callback — adiciona dados extras à sessão disponível no cliente.
+         * session callback — disponibiliza dados do usuário em componentes cliente.
          */
         session({ session, token }) {
             if (session.user && token.sub) {
                 session.user.id = token.sub;
             }
+            if (session.user && token.role) {
+                (session.user as typeof session.user & { role: string }).role =
+                    token.role as string;
+            }
             return session;
         },
 
         /**
-         * jwt callback — persiste dados no token JWT da sessão.
+         * jwt callback — persiste dados no token JWT de sessão.
          */
         jwt({ token, user }) {
             if (user) {
@@ -77,13 +100,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     session: {
         strategy: "jwt",
-        // Sessão expira em 8 horas (sem sessões infinitas)
+        // Sessão expira em 8 horas — sem sessões infinitas
         maxAge: 8 * 60 * 60,
     },
     /**
      * NEXTAUTH_SECRET DEVE ser definido em .env.
      * Em produção, a ausência deste valor causará erro intencional (fail-close).
      * TODO(security): Considerar rotação periódica do secret via KMS em produção.
+     * TODO(security): Considerar MFA para fortalecer a autenticação.
+     * TODO(security): Considerar detecção de senhas vazadas (HaveIBeenPwned API).
      */
     secret: process.env.NEXTAUTH_SECRET,
 });
