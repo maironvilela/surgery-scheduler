@@ -13,6 +13,7 @@ import {
     Building2,
     Activity,
     MessageCircle,
+    UserCog,
 } from "lucide-react";
 
 const navItems = [
@@ -23,6 +24,7 @@ const navItems = [
     { href: "/medicos", label: "Médicos", icon: Stethoscope },
     { href: "/hospitais", label: "Hospitais", icon: Building2 },
     { href: "/procedimentos", label: "Procedimentos", icon: Activity },
+    { href: "/usuarios", label: "Usuários", icon: UserCog },
 ];
 
 export function Sidebar({ className }: { className?: string }) {

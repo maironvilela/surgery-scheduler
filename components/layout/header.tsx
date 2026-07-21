@@ -22,6 +22,8 @@ export function Header({ onMenuClick }: HeaderProps) {
             case "/pacientes": return "Pacientes";
             case "/medicos": return "Médicos";
             case "/hospitais": return "Hospitais";
+            case "/procedimentos": return "Procedimentos";
+            case "/usuarios": return "Cadastro de Usuários";
             case "/configuracoes": return "Configurações";
             default: return "Dashboard";
         }
