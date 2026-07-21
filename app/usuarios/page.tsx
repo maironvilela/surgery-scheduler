@@ -50,14 +50,18 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 
+import { useRouter } from "next/navigation";
 import { getUsers, createUser, updateUser, deleteUser, UserDTO } from "@/app/actions/users";
 
 export default function UsuariosPage() {
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
+    const router = useRouter();
 
     const [users, setUsers] = useState<UserDTO[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+
+    const isAdmin = (session?.user as any)?.role === "admin";
 
     // Modal State (Create / Edit)
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -213,6 +217,23 @@ export default function UsuariosPage() {
             setIsDeleting(false);
         }
     };
+
+    if (status === "authenticated" && !isAdmin) {
+        return (
+            <div className="flex h-[70vh] flex-col items-center justify-center gap-4 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-100 text-red-600">
+                    <ShieldAlert className="h-8 w-8" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-800">Acesso Restrito</h2>
+                <p className="max-w-md text-sm text-slate-500">
+                    Apenas usuários com nível de <strong>Administrador</strong> têm permissão para gerenciar usuários.
+                </p>
+                <Button onClick={() => router.push("/")} className="bg-blue-600 hover:bg-blue-700 text-white">
+                    Voltar ao Dashboard
+                </Button>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">

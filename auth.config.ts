@@ -24,8 +24,10 @@ export const authConfig = {
                 return false; // Redireciona para /login
             }
 
+            const userRole = (auth?.user as any)?.role;
             const mustChange = (auth?.user as any)?.mustChangePassword;
             const isChangePasswordPage = nextUrl.pathname.startsWith("/alterar-senha");
+            const isUsuariosPage = nextUrl.pathname.startsWith("/usuarios");
 
             // Se o usuário precisa alterar a senha no primeiro acesso e tenta navegar fora de /alterar-senha
             if (mustChange && !isChangePasswordPage) {
@@ -34,6 +36,11 @@ export const authConfig = {
 
             // Se o usuário já alterou a senha e tenta acessar /alterar-senha manualmente
             if (!mustChange && isChangePasswordPage) {
+                return Response.redirect(new URL("/", nextUrl));
+            }
+
+            // Restrição de Acesso: Apenas administradores podem acessar a rota /usuarios
+            if (isUsuariosPage && userRole !== "admin") {
                 return Response.redirect(new URL("/", nextUrl));
             }
 
@@ -56,6 +63,7 @@ export const authConfig = {
         jwt({ token, user, trigger, session }) {
             if (user) {
                 token.id = user.id;
+                token.role = (user as any).role;
                 token.mustChangePassword = (user as any).mustChangePassword;
             }
             // Atualiza a flag na sessão após o usuário alterar a senha

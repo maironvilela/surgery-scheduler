@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
+import { auth } from "@/auth";
 
 export interface UserDTO {
     id: string;
@@ -13,8 +14,17 @@ export interface UserDTO {
     createdAt: string;
 }
 
+async function checkAdminPermission() {
+    const session = await auth();
+    if (!session?.user || (session.user as any).role !== "admin") {
+        throw new Error("Acesso negado. Apenas administradores podem gerenciar usuários.");
+    }
+}
+
 export async function getUsers(): Promise<UserDTO[]> {
     try {
+        await checkAdminPermission();
+
         const users = await prisma.user.findMany({
             select: {
                 id: true,
@@ -44,6 +54,8 @@ export async function createUser(data: {
     role?: string;
     mustChangePassword?: boolean;
 }): Promise<UserDTO> {
+    await checkAdminPermission();
+
     const cleanEmail = data.email.toLowerCase().trim();
     const cleanName = data.name.trim();
 
@@ -107,6 +119,8 @@ export async function updateUser(
         mustChangePassword?: boolean;
     }
 ): Promise<UserDTO> {
+    await checkAdminPermission();
+
     const updateData: Record<string, any> = {};
 
     if (data.name) {
@@ -172,6 +186,8 @@ export async function updateUser(
 }
 
 export async function deleteUser(id: string): Promise<void> {
+    await checkAdminPermission();
+
     // Impede excluir se for o único usuário do sistema
     const totalUsers = await prisma.user.count();
     if (totalUsers <= 1) {

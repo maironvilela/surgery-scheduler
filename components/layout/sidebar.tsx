@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import {
     LayoutDashboard,
@@ -17,18 +18,22 @@ import {
 } from "lucide-react";
 
 const navItems = [
-    { href: "/", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/agenda", label: "Agenda", icon: CalendarDays },
-    { href: "/consultas", label: "Consultas", icon: MessageCircle },
-    { href: "/pacientes", label: "Pacientes", icon: Users },
-    { href: "/medicos", label: "Médicos", icon: Stethoscope },
-    { href: "/hospitais", label: "Hospitais", icon: Building2 },
-    { href: "/procedimentos", label: "Procedimentos", icon: Activity },
-    { href: "/usuarios", label: "Usuários", icon: UserCog },
+    { href: "/", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
+    { href: "/agenda", label: "Agenda", icon: CalendarDays, adminOnly: false },
+    { href: "/consultas", label: "Consultas", icon: MessageCircle, adminOnly: false },
+    { href: "/pacientes", label: "Pacientes", icon: Users, adminOnly: false },
+    { href: "/medicos", label: "Médicos", icon: Stethoscope, adminOnly: false },
+    { href: "/hospitais", label: "Hospitais", icon: Building2, adminOnly: false },
+    { href: "/procedimentos", label: "Procedimentos", icon: Activity, adminOnly: false },
+    { href: "/usuarios", label: "Usuários", icon: UserCog, adminOnly: true },
 ];
 
 export function Sidebar({ className }: { className?: string }) {
     const pathname = usePathname();
+    const { data: session } = useSession();
+    const isAdmin = (session?.user as any)?.role === "admin";
+
+    const visibleNavItems = navItems.filter((item) => !item.adminOnly || isAdmin);
 
     return (
         <aside
@@ -51,7 +56,7 @@ export function Sidebar({ className }: { className?: string }) {
             </div>
             <div className="flex-1 overflow-y-auto py-4">
                 <nav className="space-y-1 px-3">
-                    {navItems.map((item) => {
+                    {visibleNavItems.map((item) => {
                         const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
                         return (
                             <Link
