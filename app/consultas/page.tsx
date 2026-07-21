@@ -310,6 +310,81 @@ export default function ConsultasPage() {
         }
     }, [activeTab]);
 
+    useEffect(() => {
+        const eventSource = new EventSource("/api/realtime");
+
+        eventSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.entity !== "consultation") return;
+
+                const { type, payload } = data;
+                const currentDateStr = date || new Date().toISOString().split('T')[0];
+
+                switch (type) {
+                    case "add": {
+                        const payloadDateStr = payload.date.split('T')[0];
+                        if (currentDateStr === payloadDateStr) {
+                            setPatients((prev) => {
+                                if (prev.some((p) => p.id === payload.id)) return prev;
+                                return [...prev, payload];
+                            });
+                        }
+                        setAllPatients((prev) => {
+                            if (prev.length === 0 || prev.some((p) => p.id === payload.id)) return prev;
+                            return [...prev, payload];
+                        });
+                        break;
+                    }
+                    case "update": {
+                        const payloadDateStr = payload.date.split('T')[0];
+                        if (currentDateStr === payloadDateStr) {
+                            setPatients((prev) => {
+                                const exists = prev.some((p) => p.id === payload.id);
+                                if (exists) {
+                                    return prev.map((p) => (p.id === payload.id ? payload : p));
+                                } else if (!payload.isArchived) {
+                                    return [...prev, payload];
+                                }
+                                return prev;
+                            });
+                        } else {
+                            setPatients((prev) => prev.filter((p) => p.id !== payload.id));
+                        }
+
+                        setAllPatients((prev) => {
+                            if (prev.length === 0) return prev;
+                            return prev.map((p) => (p.id === payload.id ? payload : p));
+                        });
+                        break;
+                    }
+                    case "delete": {
+                        setPatients((prev) => prev.filter((p) => p.id !== payload.id));
+                        setAllPatients((prev) => prev.filter((p) => p.id !== payload.id));
+                        break;
+                    }
+                    case "clear": {
+                        setPatients((prev) => prev.filter((p) => p.isArchived));
+                        setAllPatients((prev) => prev.filter((p) => p.isArchived));
+                        break;
+                    }
+                    default:
+                        break;
+                }
+            } catch (error) {
+                console.error("Error processing realtime message:", error);
+            }
+        };
+
+        eventSource.onerror = (error) => {
+            console.error("EventSource failed:", error);
+        };
+
+        return () => {
+            eventSource.close();
+        };
+    }, [date]);
+
     // Actions
     const handleSelectPatient = (patient: any) => {
         setNewPatientName(patient.name);

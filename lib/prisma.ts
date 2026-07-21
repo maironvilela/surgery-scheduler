@@ -165,8 +165,13 @@ function initSchema(db: InstanceType<typeof Database>) {
 }
 
 function createPrismaClient() {
-    const isPostgres = process.env.DB_TARGET === 'postgres' || 
-                       (process.env.DATABASE_URL && (process.env.DATABASE_URL.startsWith('postgres://') || process.env.DATABASE_URL.startsWith('postgresql://')))
+    const isDev = process.env.NODE_ENV !== 'production';
+
+    // Em desenvolvimento, força o uso do SQLite. Em produção, verifica a configuração.
+    const isPostgres = !isDev && (
+        process.env.DB_TARGET === 'postgres' || 
+        (process.env.DATABASE_URL && (process.env.DATABASE_URL.startsWith('postgres://') || process.env.DATABASE_URL.startsWith('postgresql://')))
+    );
 
     if (isPostgres) {
         console.log('Initializing Prisma Client with PostgreSQL')
@@ -176,13 +181,21 @@ function createPrismaClient() {
     }
 
     console.log('Initializing Prisma Client with SQLite')
+    
+    // Se estiver em desenvolvimento, utiliza a URL definida em SQLITE_URL
+    let dbPath = DB_PATH
+    if (process.env.SQLITE_URL) {
+        // Remove o prefixo 'file:' se existir
+        dbPath = process.env.SQLITE_URL.replace(/^file:/, '')
+    }
+
     // Inicializa o banco e aplica o schema via better-sqlite3 diretamente
-    const db = new Database(DB_PATH)
+    const db = new Database(dbPath)
     initSchema(db)
     db.close()
 
     // O adapter faz sua própria conexão usando o mesmo arquivo
-    const adapter = new PrismaBetterSqlite3({ url: DB_PATH })
+    const adapter = new PrismaBetterSqlite3({ url: dbPath })
     return new PrismaClient({ adapter })
 }
 

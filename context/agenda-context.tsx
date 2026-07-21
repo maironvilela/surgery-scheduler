@@ -36,6 +36,60 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
         loadSurgeries();
     }, []);
 
+    useEffect(() => {
+        const eventSource = new EventSource("/api/realtime");
+
+        eventSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.entity !== "surgery") return;
+
+                const { type, payload } = data;
+
+                switch (type) {
+                    case "add":
+                        setSurgeries((prev) => {
+                            if (prev.some((s) => s.id === payload.id)) return prev;
+                            return [...prev, payload];
+                        });
+                        break;
+                    case "update":
+                        setSurgeries((prev) =>
+                            prev.map((s) => (s.id === payload.id ? payload : s))
+                        );
+                        break;
+                    case "delete":
+                        setSurgeries((prev) => prev.filter((s) => s.id !== payload.id));
+                        break;
+                    case "comment":
+                        setSurgeries((prev) =>
+                            prev.map((s) => {
+                                if (s.id === payload.surgeryId) {
+                                    const comments = s.comments || [];
+                                    if (comments.some((c) => c.id === payload.comment.id)) return s;
+                                    return { ...s, comments: [...comments, payload.comment] };
+                                }
+                                return s;
+                            })
+                        );
+                        break;
+                    default:
+                        break;
+                }
+            } catch (error) {
+                console.error("Error processing realtime message:", error);
+            }
+        };
+
+        eventSource.onerror = (error) => {
+            console.error("EventSource failed:", error);
+        };
+
+        return () => {
+            eventSource.close();
+        };
+    }, []);
+
     const addSurgery = async (data: Omit<Surgery, "id" | "createdAt" | "comments"> & { comments: any[] }) => {
         try {
             const newSurgery = await serverAddSurgery(data);

@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { ConsultationItem } from "@/types";
 import { revalidatePath } from "next/cache";
+import { realtimeManager } from "@/lib/realtime";
 
 export async function getConsultations(date?: string) {
     try {
@@ -44,10 +45,12 @@ export async function addConsultation(data: Omit<ConsultationItem, "id">) {
             }
         });
         revalidatePath("/consultas");
-        return {
+        const result = {
             ...consultation,
             date: consultation.date.toISOString()
         } as ConsultationItem;
+        realtimeManager.publish({ entity: "consultation", type: "add", payload: result });
+        return result;
     } catch (error) {
         console.error("Failed to add consultation:", error);
         throw new Error("Failed to add consultation");
@@ -73,10 +76,12 @@ export async function updateConsultation(id: string, data: Partial<Omit<Consulta
             }
         });
         revalidatePath("/consultas");
-        return {
+        const result = {
             ...consultation,
             date: consultation.date.toISOString()
         } as ConsultationItem;
+        realtimeManager.publish({ entity: "consultation", type: "update", payload: result });
+        return result;
     } catch (error) {
         console.error("Failed to update consultation:", error);
         throw new Error("Failed to update consultation");
@@ -89,6 +94,7 @@ export async function deleteConsultation(id: string) {
             where: { id }
         });
         revalidatePath("/consultas");
+        realtimeManager.publish({ entity: "consultation", type: "delete", payload: { id } });
     } catch (error) {
         console.error("Failed to delete consultation:", error);
         throw new Error("Failed to delete consultation");
@@ -103,6 +109,7 @@ export async function deleteAllConsultations() {
             }
         });
         revalidatePath("/consultas");
+        realtimeManager.publish({ entity: "consultation", type: "clear", payload: {} });
     } catch (error) {
         console.error("Failed to clear consultations:", error);
         throw new Error("Failed to clear consultations");

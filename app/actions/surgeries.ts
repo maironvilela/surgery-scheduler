@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { Surgery } from "@/types";
 import { revalidatePath } from "next/cache";
+import { realtimeManager } from "@/lib/realtime";
 
 export async function getSurgeries() {
     try {
@@ -50,10 +51,12 @@ export async function addSurgery(data: Omit<Surgery, "id" | "createdAt" | "comme
             include: { comments: true }
         });
         revalidatePath("/agenda");
-        return {
+        const result = {
             ...surgery,
             createdAt: surgery.createdAt.toISOString()
         } as Surgery;
+        realtimeManager.publish({ entity: "surgery", type: "add", payload: result });
+        return result;
     } catch (error) {
         console.error("Failed to add surgery:", error);
         throw new Error("Failed to add surgery");
@@ -82,10 +85,12 @@ export async function updateSurgery(id: string, data: Partial<Omit<Surgery, "id"
             include: { comments: true }
         });
         revalidatePath("/agenda");
-        return {
+        const result = {
             ...surgery,
             createdAt: surgery.createdAt.toISOString()
         } as Surgery;
+        realtimeManager.publish({ entity: "surgery", type: "update", payload: result });
+        return result;
     } catch (error) {
         console.error("Failed to update surgery:", error);
         throw new Error("Failed to update surgery");
@@ -98,6 +103,7 @@ export async function deleteSurgery(id: string) {
             where: { id }
         });
         revalidatePath("/agenda");
+        realtimeManager.publish({ entity: "surgery", type: "delete", payload: { id } });
     } catch (error) {
         console.error("Failed to delete surgery:", error);
         throw new Error("Failed to delete surgery");
@@ -113,6 +119,7 @@ export async function addSurgeryComment(surgeryId: string, comment: { user: stri
             }
         });
         revalidatePath("/agenda");
+        realtimeManager.publish({ entity: "surgery", type: "comment", payload: { surgeryId, comment: newComment } });
         return newComment;
     } catch (error) {
         console.error("Failed to add comment:", error);
