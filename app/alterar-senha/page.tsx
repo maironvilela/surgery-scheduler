@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, ShieldCheck, Key, Lock, CheckCircle2 } from "lucide-react";
+import { Eye, EyeOff, ShieldCheck, Key, Lock, CheckCircle2, LogOut } from "lucide-react";
 import { changeOwnPassword } from "@/app/actions/users";
 
 export default function AlterarSenhaPage() {
@@ -51,20 +51,23 @@ export default function AlterarSenhaPage() {
                 newPassword: newPassword.trim(),
             });
 
-            // Atualiza o token da sessão do NextAuth para mustChangePassword = false
+            // Atualiza o token da sessão no cliente para indicar que mustChangePassword = false
             await update({ mustChangePassword: false });
 
             setSuccessMessage("Senha alterada com sucesso! Redirecionando...");
 
             setTimeout(() => {
-                router.replace("/");
-                router.refresh();
-            }, 1200);
+                window.location.href = "/";
+            }, 800);
         } catch (err: any) {
             setError(err.message || "Erro ao alterar a senha.");
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleLogout = async () => {
+        await signOut({ callbackUrl: "/login" });
     };
 
     return (
@@ -110,7 +113,7 @@ export default function AlterarSenhaPage() {
                         {/* Senha Atual */}
                         <div className="flex flex-col gap-1.5">
                             <label htmlFor="current-password" className="text-xs font-medium text-slate-400 uppercase tracking-wider">
-                                Senha Atual (Temporária)
+                                Senha Atual (Provisória)
                             </label>
                             <div className="relative">
                                 <Key className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
@@ -192,6 +195,18 @@ export default function AlterarSenhaPage() {
                             )}
                         </button>
                     </form>
+
+                    {/* Botão de Sair */}
+                    <div className="mt-6 border-t border-white/10 pt-4 text-center">
+                        <button
+                            type="button"
+                            onClick={handleLogout}
+                            className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-medium text-slate-400 hover:bg-white/10 hover:text-white transition-colors"
+                        >
+                            <LogOut className="h-4 w-4" />
+                            <span>Sair e voltar ao login</span>
+                        </button>
+                    </div>
                 </div>
             </main>
         </div>
