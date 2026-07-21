@@ -37,6 +37,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                             name: true,
                             passwordHash: true,
                             role: true,
+                            mustChangePassword: true,
                         },
                     });
 
@@ -57,6 +58,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                         id: user.id,
                         email: user.email,
                         name: user.name,
+                        mustChangePassword: user.mustChangePassword,
                     };
                 } catch (error) {
                     console.error("[Auth] Erro ao verificar credenciais:", (error as Error).message);

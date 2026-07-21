@@ -9,6 +9,7 @@ export interface UserDTO {
     email: string;
     name: string;
     role: string;
+    mustChangePassword: boolean;
     createdAt: string;
 }
 
@@ -20,6 +21,7 @@ export async function getUsers(): Promise<UserDTO[]> {
                 email: true,
                 name: true,
                 role: true,
+                mustChangePassword: true,
                 createdAt: true,
             },
             orderBy: { createdAt: "desc" },
@@ -40,6 +42,7 @@ export async function createUser(data: {
     email: string;
     password: string;
     role?: string;
+    mustChangePassword?: boolean;
 }): Promise<UserDTO> {
     const cleanEmail = data.email.toLowerCase().trim();
     const cleanName = data.name.trim();
@@ -74,12 +77,14 @@ export async function createUser(data: {
             email: cleanEmail,
             passwordHash,
             role: data.role || "user",
+            mustChangePassword: data.mustChangePassword ?? true,
         },
         select: {
             id: true,
             email: true,
             name: true,
             role: true,
+            mustChangePassword: true,
             createdAt: true,
         },
     });
@@ -99,6 +104,7 @@ export async function updateUser(
         email?: string;
         password?: string;
         role?: string;
+        mustChangePassword?: boolean;
     }
 ): Promise<UserDTO> {
     const updateData: Record<string, any> = {};
@@ -130,6 +136,14 @@ export async function updateUser(
             throw new Error("A nova senha deve conter no mínimo 8 caracteres.");
         }
         updateData.passwordHash = await bcrypt.hash(data.password, 12);
+        // Se a senha foi redefinida manualmente pelo admin, exige alteração no próximo acesso
+        if (data.mustChangePassword !== undefined) {
+            updateData.mustChangePassword = data.mustChangePassword;
+        } else {
+            updateData.mustChangePassword = true;
+        }
+    } else if (data.mustChangePassword !== undefined) {
+        updateData.mustChangePassword = data.mustChangePassword;
     }
 
     if (data.role) {
@@ -144,6 +158,7 @@ export async function updateUser(
             email: true,
             name: true,
             role: true,
+            mustChangePassword: true,
             createdAt: true,
         },
     });
@@ -168,4 +183,53 @@ export async function deleteUser(id: string): Promise<void> {
     });
 
     revalidatePath("/usuarios");
+}
+
+export async function changeOwnPassword(data: {
+    userId: string;
+    currentPassword?: string;
+    newPassword: string;
+}): Promise<void> {
+    if (!data.userId || !data.newPassword) {
+        throw new Error("Dados incompletos.");
+    }
+
+    if (data.newPassword.length < 8) {
+        throw new Error("A nova senha deve ter no mínimo 8 caracteres.");
+    }
+
+    const user = await prisma.user.findUnique({
+        where: { id: data.userId },
+        select: { id: true, passwordHash: true, mustChangePassword: true },
+    });
+
+    if (!user) {
+        throw new Error("Usuário não encontrado.");
+    }
+
+    // Se a senha atual foi informada, valida antes de trocar
+    if (data.currentPassword) {
+        const isValid = await bcrypt.compare(data.currentPassword, user.passwordHash);
+        if (!isValid) {
+            throw new Error("A senha atual informada está incorreta.");
+        }
+    }
+
+    // Impede usar exatamente a mesma senha
+    const isSamePassword = await bcrypt.compare(data.newPassword, user.passwordHash);
+    if (isSamePassword) {
+        throw new Error("A nova senha deve ser diferente da senha atual.");
+    }
+
+    const newPasswordHash = await bcrypt.hash(data.newPassword, 12);
+
+    await prisma.user.update({
+        where: { id: user.id },
+        data: {
+            passwordHash: newPasswordHash,
+            mustChangePassword: false,
+        },
+    });
+
+    revalidatePath("/");
 }

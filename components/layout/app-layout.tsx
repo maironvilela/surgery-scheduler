@@ -9,8 +9,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const pathname = usePathname();
 
-    // A página de login tem layout próprio — não usa sidebar/header
-    if (pathname === "/login") {
+    // Páginas de fluxo de autenticação/troca de senha possuem layout próprio
+    if (pathname === "/login" || pathname === "/alterar-senha") {
         return <>{children}</>;
     }
 

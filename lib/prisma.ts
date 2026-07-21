@@ -168,6 +168,7 @@ function initSchema(db: InstanceType<typeof Database>) {
             "name" TEXT NOT NULL,
             "passwordHash" TEXT NOT NULL,
             "role" TEXT NOT NULL DEFAULT 'user',
+            "mustChangePassword" BOOLEAN NOT NULL DEFAULT true,
             "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
         CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");
