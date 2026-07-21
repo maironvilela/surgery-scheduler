@@ -56,6 +56,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { useSession } from "next-auth/react";
 import { useDoctors } from "@/context/doctor-context";
 import { useHospitals } from "@/context/hospital-context";
 import { usePatients } from "@/context/patient-context";
@@ -310,7 +311,11 @@ export default function ConsultasPage() {
         }
     }, [activeTab]);
 
+    const { status: sessionStatus } = useSession();
+
     useEffect(() => {
+        if (sessionStatus !== "authenticated") return;
+
         const eventSource = new EventSource("/api/realtime");
 
         eventSource.onmessage = (event) => {
@@ -376,14 +381,14 @@ export default function ConsultasPage() {
             }
         };
 
-        eventSource.onerror = (error) => {
-            console.error("EventSource failed:", error);
+        eventSource.onerror = () => {
+            eventSource.close();
         };
 
         return () => {
             eventSource.close();
         };
-    }, [date]);
+    }, [date, sessionStatus]);
 
     // Actions
     const handleSelectPatient = (patient: any) => {

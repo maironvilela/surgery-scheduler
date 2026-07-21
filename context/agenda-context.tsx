@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { Surgery } from "@/types";
 import { getSurgeries, addSurgery as serverAddSurgery, updateSurgery as serverUpdateSurgery, deleteSurgery as serverDeleteSurgery, addSurgeryComment as serverAddComment } from "@/app/actions/surgeries";
 import { toast } from "sonner";
@@ -18,10 +19,13 @@ interface AgendaContextType {
 const AgendaContext = createContext<AgendaContextType | undefined>(undefined);
 
 export function AgendaProvider({ children }: { children: ReactNode }) {
+    const { status: sessionStatus } = useSession();
     const [surgeries, setSurgeries] = useState<Surgery[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        if (sessionStatus !== "authenticated") return;
+
         async function loadSurgeries() {
             try {
                 const data = await getSurgeries();
@@ -34,9 +38,11 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
             }
         }
         loadSurgeries();
-    }, []);
+    }, [sessionStatus]);
 
     useEffect(() => {
+        if (sessionStatus !== "authenticated") return;
+
         const eventSource = new EventSource("/api/realtime");
 
         eventSource.onmessage = (event) => {
@@ -81,14 +87,14 @@ export function AgendaProvider({ children }: { children: ReactNode }) {
             }
         };
 
-        eventSource.onerror = (error) => {
-            console.error("EventSource failed:", error);
+        eventSource.onerror = () => {
+            eventSource.close();
         };
 
         return () => {
             eventSource.close();
         };
-    }, []);
+    }, [sessionStatus]);
 
     const addSurgery = async (data: Omit<Surgery, "id" | "createdAt" | "comments"> & { comments: any[] }) => {
         try {
