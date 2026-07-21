@@ -1,12 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
-import { cn } from "@/lib/utils";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const pathname = usePathname();
+
+    // A página de login tem layout próprio — não usa sidebar/header
+    if (pathname === "/login") {
+        return <>{children}</>;
+    }
 
     return (
         <div className="flex h-screen overflow-hidden bg-slate-50">

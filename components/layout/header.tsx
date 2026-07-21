@@ -1,8 +1,10 @@
 "use client";
 
-import { Bell, Menu, Search } from "lucide-react";
+import { Bell, Menu, Search, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
+import Image from "next/image";
 
 interface HeaderProps {
     onMenuClick: () => void;
@@ -10,6 +12,7 @@ interface HeaderProps {
 
 export function Header({ onMenuClick }: HeaderProps) {
     const pathname = usePathname();
+    const { data: session } = useSession();
 
     const getPageTitle = (path: string) => {
         switch (path) {
@@ -22,6 +25,11 @@ export function Header({ onMenuClick }: HeaderProps) {
             case "/configuracoes": return "Configurações";
             default: return "Dashboard";
         }
+    };
+
+    const handleLogout = async () => {
+        // Limpa o estado de sessão e redireciona para /login
+        await signOut({ callbackUrl: "/login" });
     };
 
     return (
@@ -49,6 +57,46 @@ export function Header({ onMenuClick }: HeaderProps) {
                     <Bell className="h-5 w-5" />
                     <span className="sr-only">Notificações</span>
                 </Button>
+
+                {/* Área do usuário autenticado */}
+                {session?.user && (
+                    <div className="flex items-center gap-2">
+                        {/* Avatar */}
+                        <div className="relative h-8 w-8 overflow-hidden rounded-full ring-2 ring-slate-100">
+                            {session.user.image ? (
+                                <Image
+                                    src={session.user.image}
+                                    alt={session.user.name ?? "Usuário"}
+                                    fill
+                                    className="object-cover"
+                                    sizes="32px"
+                                />
+                            ) : (
+                                <div className="flex h-full w-full items-center justify-center bg-blue-600 text-xs font-semibold text-white">
+                                    {session.user.name?.charAt(0).toUpperCase() ?? "U"}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Nome do usuário (apenas desktop) */}
+                        <span className="hidden max-w-[120px] truncate text-sm font-medium text-slate-700 lg:block">
+                            {session.user.name}
+                        </span>
+
+                        {/* Botão de logout */}
+                        <Button
+                            id="btn-logout"
+                            variant="ghost"
+                            size="icon"
+                            onClick={handleLogout}
+                            className="text-slate-500 hover:text-red-600"
+                            title="Sair"
+                            aria-label="Sair da conta"
+                        >
+                            <LogOut className="h-4 w-4" />
+                        </Button>
+                    </div>
+                )}
             </div>
         </header>
     );
