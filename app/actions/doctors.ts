@@ -9,7 +9,7 @@ export async function getDoctors() {
         const doctors = await prisma.doctor.findMany({
             orderBy: { name: 'asc' }
         });
-        return doctors.map(d => ({
+        return doctors.map((d: any) => ({
             ...d,
             createdAt: d.createdAt.toISOString(),
             updatedAt: d.updatedAt.toISOString(),

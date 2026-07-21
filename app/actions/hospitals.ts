@@ -12,7 +12,7 @@ export async function getHospitals() {
             },
             orderBy: { name: 'asc' }
         });
-        return hospitals.map(h => ({
+        return hospitals.map((h: any) => ({
             ...h,
             createdAt: h.createdAt.toISOString()
         })) as Hospital[];
@@ -36,7 +36,7 @@ export async function addHospital(data: Omit<Hospital, "id" | "createdAt" | "con
                 state: data.state,
                 referencePoint: data.referencePoint,
                 contacts: {
-                    create: data.contacts.map(contact => ({
+                    create: data.contacts.map((contact: any) => ({
                         type: contact.type,
                         value: contact.value,
                         label: contact.label,
@@ -78,7 +78,7 @@ export async function updateHospital(id: string, data: Omit<Hospital, "id" | "cr
                 state: data.state,
                 referencePoint: data.referencePoint,
                 contacts: {
-                    create: data.contacts.map(contact => ({
+                    create: data.contacts.map((contact: any) => ({
                         type: contact.type,
                         value: contact.value,
                         label: contact.label,

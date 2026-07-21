@@ -13,7 +13,7 @@ export async function getSurgeries() {
             },
             orderBy: { date: 'asc' }
         });
-        return surgeries.map(s => ({
+        return surgeries.map((s: any) => ({
             ...s,
             createdAt: s.createdAt.toISOString()
         })) as Surgery[];
@@ -41,7 +41,7 @@ export async function addSurgery(data: Omit<Surgery, "id" | "createdAt" | "comme
                 status: data.status,
                 notes: data.notes,
                 comments: {
-                    create: data.comments?.map(comment => ({
+                    create: data.comments?.map((comment: any) => ({
                         user: comment.user,
                         date: comment.date,
                         content: comment.content

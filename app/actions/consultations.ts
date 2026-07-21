@@ -17,7 +17,7 @@ export async function getConsultations(date?: string) {
             } : undefined,
             orderBy: { time: 'asc' }
         });
-        return consultations.map(c => ({
+        return consultations.map((c: any) => ({
             ...c,
             date: c.date.toISOString()
         })) as ConsultationItem[];

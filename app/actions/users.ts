@@ -37,7 +37,7 @@ export async function getUsers(): Promise<UserDTO[]> {
             orderBy: { createdAt: "desc" },
         });
 
-        return users.map((u) => ({
+        return users.map((u: any) => ({
             ...u,
             createdAt: u.createdAt.toISOString(),
         }));
