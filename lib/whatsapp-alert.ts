@@ -1,11 +1,8 @@
-import { getWhatsappClient, getWhatsappStatus } from "@/lib/whatsapp";
-
 /**
- * Envia um alerta no WhatsApp sempre que houver falha de autenticação.
+ * Envia um alerta no WhatsApp sempre que houver falha de autenticação via API uTalk.
  * Alvo: (31) 98720-5436 -> +5531987205436
  */
 export async function sendAuthFailureAlert(attemptedEmail: string) {
-    const rawPhone = "5531987205436";
     const formattedPhone = "+5531987205436";
     const timestamp = new Date().toLocaleString("pt-BR", {
         timeZone: "America/Sao_Paulo",
@@ -15,68 +12,41 @@ export async function sendAuthFailureAlert(attemptedEmail: string) {
 
     console.warn(`[Security Alert] Tentativa de login malsucedida para: ${attemptedEmail}`);
 
-    let sent = false;
-
-    // 1. Tenta envio via uTalk API (Umbler)
     const utalkToken = process.env.UTALK_API_TOKEN;
     const utalkOrgId = process.env.UTALK_ORGANIZATION_ID;
 
-    if (utalkToken && utalkOrgId) {
-        try {
-            const res = await fetch("https://app-utalk.umbler.com/api/v1/messages/simplified/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${utalkToken}`,
-                },
-                body: JSON.stringify({
-                    toPhone: formattedPhone,
-                    fromPhone: process.env.UTALK_FROM_PHONE,
-                    organizationId: utalkOrgId,
-                    message: message,
-                    file: null,
-                    skipReassign: false,
-                    contactName: "Segurança Sistema",
-                }),
-            });
-
-            if (res.ok) {
-                console.log(`[Security Alert] ✅ Alerta uTalk enviado para ${formattedPhone}`);
-                sent = true;
-            } else {
-                const errData = await res.json().catch(() => ({}));
-                console.error("[Security Alert] ❌ Erro na API uTalk:", errData);
-            }
-        } catch (err) {
-            console.error("[Security Alert] ❌ Falha na requisição uTalk:", (err as Error).message);
-        }
-    } else {
+    if (!utalkToken || !utalkOrgId) {
         console.warn(
-            "[Security Alert] ⚠️ Variáveis UTALK_API_TOKEN / UTALK_ORGANIZATION_ID não configuradas no .env"
+            "[Security Alert] ⚠️ Variáveis UTALK_API_TOKEN / UTALK_ORGANIZATION_ID não estão configuradas no ambiente (.env / Vercel)."
         );
+        return;
     }
 
-    // 2. Tenta envio via WhatsApp Web Local (se o QR Code estiver escaneado e ativo)
     try {
-        const { status } = getWhatsappStatus();
-        if (status === "READY") {
-            const client = getWhatsappClient();
-            const chatId = `${rawPhone}@c.us`;
-            await client.sendMessage(chatId, message);
-            console.log(`[Security Alert] ✅ Alerta WhatsApp Web enviado para ${chatId}`);
-            sent = true;
+        const res = await fetch("https://app-utalk.umbler.com/api/v1/messages/simplified/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${utalkToken}`,
+            },
+            body: JSON.stringify({
+                toPhone: formattedPhone,
+                fromPhone: process.env.UTALK_FROM_PHONE,
+                organizationId: utalkOrgId,
+                message: message,
+                file: null,
+                skipReassign: false,
+                contactName: "Segurança Sistema",
+            }),
+        });
+
+        if (res.ok) {
+            console.log(`[Security Alert] ✅ Alerta uTalk enviado com sucesso para ${formattedPhone}`);
         } else {
-            console.warn(
-                `[Security Alert] ⚠️ WhatsApp Web local está '${status}' (requer leitura do QR Code na tela /chat)`
-            );
+            const errData = await res.json().catch(() => ({}));
+            console.error("[Security Alert] ❌ Erro na API do uTalk:", errData);
         }
     } catch (err) {
-        console.error("[Security Alert] ❌ Erro no WhatsApp Web local:", (err as Error).message);
-    }
-
-    if (!sent) {
-        console.error(
-            `[Security Alert] ❌ Alerta para ${attemptedEmail} NÃO pôde ser entregue. É necessário ter os dados da API uTalk no .env/Vercel ou o WhatsApp Web conectado em /chat.`
-        );
+        console.error("[Security Alert] ❌ Falha de rede ao conectar com uTalk:", (err as Error).message);
     }
 }
