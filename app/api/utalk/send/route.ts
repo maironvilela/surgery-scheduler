@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 
+const DEFAULT_UTALK_TOKEN = "Teste-2026-01-13-2094-02-01--E1663E54181A9EB56AA95A0389AF29F38EE4480E4F6454C33E38672BEE155953";
+const DEFAULT_UTALK_ORG_ID = "aUPnlGY0VXoPxraR";
+const DEFAULT_UTALK_FROM_PHONE = "+5531971041077=";
+
 export async function POST(request: Request) {
     try {
         const body = await request.json();
@@ -9,10 +13,14 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Telefone e mensagem são obrigatórios' }, { status: 400 });
         }
 
+        const utalkToken = process.env.UTALK_API_TOKEN || DEFAULT_UTALK_TOKEN;
+        const utalkOrgId = process.env.UTALK_ORGANIZATION_ID || DEFAULT_UTALK_ORG_ID;
+        const utalkFromPhone = process.env.UTALK_FROM_PHONE || DEFAULT_UTALK_FROM_PHONE;
+
         const payload = {
-            toPhone: toPhone, // Assuming format is correct, or should I enforce +55? User example has +55
-            fromPhone: process.env.UTALK_FROM_PHONE,
-            organizationId: process.env.UTALK_ORGANIZATION_ID,
+            toPhone: toPhone,
+            fromPhone: utalkFromPhone,
+            organizationId: utalkOrgId,
             message: message,
             file: null,
             skipReassign: false,
@@ -23,7 +31,7 @@ export async function POST(request: Request) {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "Authorization": `Bearer ${process.env.UTALK_API_TOKEN}`
+                "Authorization": `Bearer ${utalkToken}`
             },
             body: JSON.stringify(payload)
         });
