@@ -82,5 +82,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         strategy: "jwt",
         maxAge: 8 * 60 * 60,
     },
-    secret: process.env.NEXTAUTH_SECRET,
+    trustHost: true,
+    secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "daya-surgery-scheduler-secret-key-2026",
 });
