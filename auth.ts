@@ -3,7 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { authConfig } from "./auth.config";
 import prisma from "@/lib/prisma";
-import { sendAuthFailureAlert } from "@/lib/whatsapp-alert";
+import { sendAuthFailureAlert, sendAuthSuccessAlert } from "@/lib/whatsapp-alert";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
     ...authConfig,
@@ -58,6 +58,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                         );
                         return null;
                     }
+
+                    // Dispara notificação no WhatsApp de login bem-sucedido
+                    sendAuthSuccessAlert(user.email, user.name).catch((err) =>
+                        console.error("[Auth] Falha ao enviar notificação de sucesso:", err)
+                    );
 
                     return {
                         id: user.id,
