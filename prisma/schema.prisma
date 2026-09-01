@@ -160,3 +160,28 @@ model User {
   mustChangePassword Boolean  @default(true)
   createdAt          DateTime @default(now())
 }
+
+model Appointment {
+  id                 String   @id @default(cuid())
+  patientName        String   @map("patient_name")
+  patientPhone       String   @map("patient_phone")
+  doctorName         String   @map("doctor_name")
+  specialty          String
+  appointmentDate    String   @map("appointment_date")
+  appointmentTime    String   @map("appointment_time")
+  fullDatetimeString String   @map("full_datetime_string")
+  locationName       String   @map("location_name")
+  locationAddress    String   @map("location_address")
+  fromWebsite        Boolean  @default(false) @map("from_website")
+  whatsappMessage    String   @map("whatsapp_message")
+  whatsappSent       Boolean  @default(false) @map("whatsapp_sent")
+  status             String   @default("AGENDADO")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@index([patientPhone])
+  @@index([appointmentDate])
+  @@index([doctorName])
+  @@map("appointments")
+}
+

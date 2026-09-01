@@ -3,7 +3,10 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Trash2, MessageCircle, Clock, Plus, Loader2, Upload, Pencil, User, Filter, X, MoreHorizontal, FileText, Archive, Search, Download, FileJson, ImageIcon, Check, ChevronsUpDown, ArchiveRestore } from "lucide-react";
+import Link from "next/link";
+import { Trash2, MessageCircle, Clock, Plus, Loader2, Upload, Pencil, User, Filter, X, MoreHorizontal, FileText, Archive, Search, Download, FileJson, ImageIcon, Check, ChevronsUpDown, ArchiveRestore, CalendarPlus } from "lucide-react";
+
+
 import jsPDF from "jspdf";
 import { toPng, toJpeg } from "html-to-image";
 
@@ -927,10 +930,19 @@ Posso confirmar sua presença?`;
 
     return (
         <div className="  mx-auto p-6 space-y-8">
-            <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold tracking-tight text-primary">Agendamento de Consultas</h1>
-                <p className="text-muted-foreground">Gerencie a lista de consultas e confirmações via WhatsApp.</p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex flex-col gap-2">
+                    <h1 className="text-3xl font-bold tracking-tight text-primary">Agendamento de Consultas</h1>
+                    <p className="text-muted-foreground">Gerencie a lista de consultas e confirmações via WhatsApp.</p>
+                </div>
+                <Link href="/agendamento">
+                    <Button className="bg-blue-600 hover:bg-blue-700 text-white gap-2 font-medium">
+                        <CalendarPlus className="w-4 h-4" />
+                        Novo Agendamento (WhatsApp Direto)
+                    </Button>
+                </Link>
             </div>
+
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 w-full flex flex-col items-center">
                 <TabsList className="grid w-full max-w-[600px] grid-cols-2 rounded-xl p-1 bg-slate-100/50 border border-slate-200 shadow-sm h-12">

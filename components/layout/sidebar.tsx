@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import {
     LayoutDashboard,
     CalendarDays,
+    CalendarPlus,
     Users,
     Stethoscope,
     DoorOpen,
@@ -19,6 +20,7 @@ import {
 
 const navItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
+    { href: "/agendamento", label: "Agendar Consulta", icon: CalendarPlus, adminOnly: false },
     { href: "/agenda", label: "Agenda", icon: CalendarDays, adminOnly: false },
     { href: "/consultas", label: "Consultas", icon: MessageCircle, adminOnly: false },
     { href: "/pacientes", label: "Pacientes", icon: Users, adminOnly: false },
@@ -27,6 +29,7 @@ const navItems = [
     { href: "/procedimentos", label: "Procedimentos", icon: Activity, adminOnly: false },
     { href: "/usuarios", label: "Usuários", icon: UserCog, adminOnly: true },
 ];
+
 
 export function Sidebar({ className }: { className?: string }) {
     const pathname = usePathname();

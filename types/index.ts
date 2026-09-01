@@ -136,3 +136,24 @@ export interface ConsultationItem {
     insurance?: string;
     observations?: string;
 }
+
+export interface Appointment {
+    id: string;
+    patientName: string;
+    patientPhone: string;
+    doctorName: string;
+    specialty: string;
+    appointmentDate: string;
+    appointmentTime: string;
+    fullDatetimeString: string;
+    locationName: string;
+    locationAddress: string;
+    fromWebsite: boolean;
+    whatsappMessage: string;
+    whatsappSent: boolean;
+    status: 'AGENDADO' | 'CANCELADO' | string;
+
+    createdAt: string;
+    updatedAt: string;
+}
+
