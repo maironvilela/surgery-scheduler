@@ -35,8 +35,9 @@ export async function POST(req: Request) {
     2. Hora: O horário da consulta (coluna Hora).
     3. Telefone: O número de telefone. Se houver "Celular", use-o. Se não, use "Telefone". Remova todos os caracteres não numéricos.
     4. Convênio: O nome do convênio ou forma de pagamento (colunas "Convênio" ou "Forma de Pgto").
+    5. Plano: O plano de saúde ou categoria do convênio (coluna "Plano" se existir, caso contrário string vazia "").
     
-    Retorne APENAS um array JSON válido contendo objetos com as propriedades: "patientName", "time", "phone", "insurance".
+    Retorne APENAS um array JSON válido contendo objetos com as propriedades: "patientName", "time", "phone", "insurance", "plan".
     Não inclua markdown (como \`\`\`json), apenas o JSON puro.`;
 
         const maxRetries = 3;

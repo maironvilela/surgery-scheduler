@@ -158,6 +158,7 @@ export default function ConsultasPage() {
     const [newPatientPhone, setNewPatientPhone] = useState("");
     const [newPatientTime, setNewPatientTime] = useState("");
     const [newPatientInsurance, setNewPatientInsurance] = useState("");
+    const [newPatientPlan, setNewPatientPlan] = useState("");
     const [whatsappErrors, setWhatsappErrors] = useState<Record<string, boolean>>({});
     const [whatsappResent, setWhatsappResent] = useState<Record<string, boolean>>({});
 
@@ -419,6 +420,7 @@ export default function ConsultasPage() {
         setNewPatientName(patient.name);
         setNewPatientPhone(formatPhone(patient.phone || ""));
         setNewPatientInsurance(patient.insurance || "");
+        setNewPatientPlan(patient.plan || "");
         setShowSuggestions(false);
     };
 
@@ -428,6 +430,7 @@ export default function ConsultasPage() {
         setNewPatientPhone(patient.phone || "");
         setNewPatientTime(patient.time);
         setNewPatientInsurance(patient.insurance || "");
+        setNewPatientPlan(patient.plan || "");
     };
 
     const handleCancelEdit = () => {
@@ -436,6 +439,7 @@ export default function ConsultasPage() {
         setNewPatientPhone("");
         setNewPatientTime("");
         setNewPatientInsurance("");
+        setNewPatientPlan("");
     };
 
     const handleAddPatient = async () => {
@@ -449,9 +453,9 @@ export default function ConsultasPage() {
         );
 
         if (existingPatient) {
-            // Update phone if different
-            if (existingPatient.phone !== cleanPhone) {
-                await updatePatient(existingPatient.id, { ...existingPatient, phone: cleanPhone });
+            // Update phone / insurance / plan if different
+            if (existingPatient.phone !== cleanPhone || existingPatient.insurance !== newPatientInsurance || existingPatient.plan !== newPatientPlan) {
+                await updatePatient(existingPatient.id, { ...existingPatient, phone: cleanPhone, insurance: newPatientInsurance, plan: newPatientPlan });
             }
         } else {
             // Create new patient
@@ -459,7 +463,7 @@ export default function ConsultasPage() {
                 name: newPatientName,
                 phone: cleanPhone,
                 insurance: newPatientInsurance,
-                plan: "",
+                plan: newPatientPlan,
                 birthDate: "",
                 gender: "other",
                 cep: "",
@@ -480,6 +484,7 @@ export default function ConsultasPage() {
                     phone: cleanPhone,
                     time: newPatientTime,
                     insurance: newPatientInsurance,
+                    plan: newPatientPlan,
                     date: date || new Date().toISOString().split('T')[0]
                 });
                 setPatients(patients.map(p => p.id === editingPatientId ? updated as ConsultationItem : p));
@@ -506,7 +511,8 @@ export default function ConsultasPage() {
                 whatsappSent: false,
                 doctorId: selectedDoctorId,
                 hospitalId: selectedHospitalId,
-                insurance: newPatientInsurance
+                insurance: newPatientInsurance,
+                plan: newPatientPlan
             });
 
             setPatients([...patients, newItem as ConsultationItem]);
@@ -514,6 +520,7 @@ export default function ConsultasPage() {
             setNewPatientPhone("");
             setNewPatientTime("");
             setNewPatientInsurance("");
+            setNewPatientPlan("");
             toast.success("Paciente adicionado à lista");
         } catch (error) {
             toast.error("Erro ao adicionar consulta");
@@ -727,7 +734,7 @@ Posso confirmar sua presença?`;
                         name: item.patientName,
                         phone: cleanPhone,
                         insurance: item.insurance || "",
-                        plan: "",
+                        plan: item.plan || "",
                         birthDate: "",
                         gender: "other",
                         cep: "",
@@ -739,8 +746,8 @@ Posso confirmar sua presença?`;
                         state: "",
                         email: "",
                     });
-                } else if (existing.phone !== cleanPhone && cleanPhone) {
-                    await updatePatient(existing.id, { ...existing, phone: cleanPhone });
+                } else if ((existing.phone !== cleanPhone && cleanPhone) || (item.plan && existing.plan !== item.plan)) {
+                    await updatePatient(existing.id, { ...existing, phone: cleanPhone || existing.phone, plan: item.plan || existing.plan });
                 }
 
                 // 2. Add Consultation if not duplicate in current list
@@ -754,7 +761,8 @@ Posso confirmar sua presença?`;
                         whatsappSent: false,
                         doctorId: selectedDoctorId,
                         hospitalId: selectedHospitalId,
-                        insurance: item.insurance || ""
+                        insurance: item.insurance || "",
+                        plan: item.plan || ""
                     });
                     importedConsultations.push(newItem as ConsultationItem);
                 }
@@ -1088,7 +1096,7 @@ Posso confirmar sua presença?`;
                         <CardContent className="space-y-6">
                             {/* Add Patient Field */}
                             {/* Add Patient Field */}
-                            <div className="grid gap-4 md:grid-cols-[1fr_150px_150px_100px_auto] items-end border p-4 rounded-lg bg-muted/20">
+                            <div className="grid gap-4 md:grid-cols-[1fr_140px_140px_140px_100px_auto] items-end border p-4 rounded-lg bg-muted/20">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Nome do Paciente</label>
                                     <div className="relative">
@@ -1148,6 +1156,18 @@ Posso confirmar sua presença?`;
                                 </div>
 
                                 <div className="space-y-2">
+                                    <label className="text-sm font-medium">Plano</label>
+                                    <div className="flex items-center">
+                                        <FileText className="w-4 h-4 mr-2 text-muted-foreground" />
+                                        <Input
+                                            placeholder="Ex: Especial"
+                                            value={newPatientPlan}
+                                            onChange={(e) => setNewPatientPlan(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
                                     <label className="text-sm font-medium">Horário</label>
                                     <div className="flex items-center">
                                         <Clock className="w-4 h-4 mr-2 text-muted-foreground" />
@@ -1189,6 +1209,7 @@ Posso confirmar sua presença?`;
                                             <TableHead>Horário</TableHead>
                                             <TableHead>Paciente</TableHead>
                                             <TableHead>Convênio</TableHead>
+                                            <TableHead>Plano</TableHead>
                                             <TableHead>Hospital</TableHead>
                                             <TableHead className="w-[150px]">Status</TableHead>
                                             <TableHead className="text-right">Ações</TableHead>
@@ -1220,7 +1241,8 @@ Posso confirmar sua presença?`;
                                                                 <span className="text-xs text-muted-foreground">{formatPhone(patient.phone || "")}</span>
                                                             </div>
                                                         </TableCell>
-                                                        <TableCell>{patient.insurance}</TableCell>
+                                                        <TableCell>{patient.insurance || "-"}</TableCell>
+                                                        <TableCell>{patient.plan || "-"}</TableCell>
                                                         <TableCell>
                                                             <div className="flex flex-col">
                                                                 <span>{hospitals.find(h => h.id === patient.hospitalId)?.name || "-"}</span>

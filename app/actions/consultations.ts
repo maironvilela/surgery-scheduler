@@ -41,6 +41,7 @@ export async function addConsultation(data: Omit<ConsultationItem, "id">) {
                 doctorId: data.doctorId || undefined,
                 hospitalId: data.hospitalId || undefined,
                 insurance: data.insurance,
+                plan: data.plan,
                 observations: data.observations,
             }
         });
@@ -72,6 +73,7 @@ export async function updateConsultation(id: string, data: Partial<Omit<Consulta
                 doctorId: data.doctorId || undefined,
                 hospitalId: data.hospitalId || undefined,
                 insurance: data.insurance,
+                plan: data.plan,
                 observations: data.observations,
             }
         });

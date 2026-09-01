@@ -40,6 +40,8 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
     // Form States
     const [patientName, setPatientName] = useState("");
     const [patientPhone, setPatientPhone] = useState("");
+    const [insurance, setInsurance] = useState("");
+    const [plan, setPlan] = useState("");
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [doctorName, setDoctorName] = useState("Dr. Jader de Andrade");
     const [appointmentDate, setAppointmentDate] = useState(todayStr);
@@ -148,8 +150,8 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                         name: trimmedPatientName,
                         phone: clean,
                         gender: "other",
-                        insurance: "Particular",
-                        plan: "",
+                        insurance: insurance || "Particular",
+                        plan: plan || "",
                         birthDate: "",
                         cep: "",
                         street: "",
@@ -186,6 +188,8 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
             const newAppointment = await createAppointment({
                 patientName: trimmedPatientName,
                 patientPhone: clean,
+                insurance,
+                plan,
                 doctorName,
                 specialty: mappedSpecialty,
                 appointmentDate,
@@ -252,6 +256,8 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
             // Reset patient input fields for next entry
             setPatientName("");
             setPatientPhone("");
+            setInsurance("");
+            setPlan("");
             setShowSuggestions(false);
 
             if (onAppointmentCreated) {
@@ -297,8 +303,10 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                                     const match = availablePatients.find(
                                         (p) => p.name.toLowerCase() === val.trim().toLowerCase()
                                     );
-                                    if (match && match.phone) {
-                                        setPatientPhone(formatPhone(match.phone));
+                                    if (match) {
+                                        if (match.phone) setPatientPhone(formatPhone(match.phone));
+                                        if (match.insurance) setInsurance(match.insurance);
+                                        if (match.plan) setPlan(match.plan);
                                     }
                                 }}
                                 onFocus={() => setShowSuggestions(true)}
@@ -308,8 +316,10 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                                         const match = availablePatients.find(
                                             (p) => p.name.toLowerCase() === patientName.trim().toLowerCase()
                                         );
-                                        if (match && match.phone) {
-                                            setPatientPhone(formatPhone(match.phone));
+                                        if (match) {
+                                            if (match.phone) setPatientPhone(formatPhone(match.phone));
+                                            if (match.insurance) setInsurance(match.insurance);
+                                            if (match.plan) setPlan(match.plan);
                                         }
                                     }
                                 }}
@@ -331,9 +341,9 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                                         onMouseDown={(e) => {
                                             e.preventDefault();
                                             setPatientName(p.name);
-                                            if (p.phone) {
-                                                setPatientPhone(formatPhone(p.phone));
-                                            }
+                                            if (p.phone) setPatientPhone(formatPhone(p.phone));
+                                            if (p.insurance) setInsurance(p.insurance);
+                                            if (p.plan) setPlan(p.plan);
                                             setShowSuggestions(false);
                                         }}
                                     >
@@ -362,6 +372,43 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                                 className="pl-9 bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100"
                                 required
                             />
+                        </div>
+                    </div>
+
+                    {/* Convênio & Plano */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="insurance" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                Convênio
+                            </Label>
+                            <div className="relative">
+                                <FileText className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                                <Input
+                                    id="insurance"
+                                    type="text"
+                                    value={insurance}
+                                    onChange={(e) => setInsurance(e.target.value)}
+                                    placeholder="Ex: Unimed"
+                                    className="pl-9 bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <Label htmlFor="plan" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                Plano
+                            </Label>
+                            <div className="relative">
+                                <FileText className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                                <Input
+                                    id="plan"
+                                    type="text"
+                                    value={plan}
+                                    onChange={(e) => setPlan(e.target.value)}
+                                    placeholder="Ex: Especial / Unifácil"
+                                    className="pl-9 bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100"
+                                />
+                            </div>
                         </div>
                     </div>
 

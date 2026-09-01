@@ -134,6 +134,7 @@ export interface ConsultationItem {
     doctorId?: string;
     hospitalId?: string;
     insurance?: string;
+    plan?: string;
     observations?: string;
 }
 
@@ -141,6 +142,8 @@ export interface Appointment {
     id: string;
     patientName: string;
     patientPhone: string;
+    insurance?: string;
+    plan?: string;
     doctorName: string;
     specialty: string;
     appointmentDate: string;

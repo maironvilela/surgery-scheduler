@@ -10,6 +10,8 @@ export async function createAppointment(data: Omit<Appointment, "id" | "createdA
             data: {
                 patientName: data.patientName,
                 patientPhone: data.patientPhone,
+                ...(data.insurance ? { insurance: data.insurance } : {}),
+                ...(data.plan ? { plan: data.plan } : {}),
                 doctorName: data.doctorName,
                 specialty: data.specialty,
                 appointmentDate: data.appointmentDate,

@@ -208,8 +208,11 @@ export default function AgendamentoPage() {
                                                 <TableRow key={app.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 text-xs">
                                                     <TableCell className="font-medium">
                                                         <div className="font-semibold text-slate-900 dark:text-slate-100">{app.patientName}</div>
-                                                        <div className="text-slate-500 text-[11px] flex items-center gap-1 mt-0.5">
+                                                        <div className="text-slate-500 text-[11px] flex items-center gap-1 mt-0.5 flex-wrap">
                                                             <span>{formatPhone(app.patientPhone)}</span>
+                                                            {(app.insurance || app.plan) && (
+                                                                <span className="text-slate-400">• {[app.insurance, app.plan].filter(Boolean).join(" - ")}</span>
+                                                            )}
                                                             {app.fromWebsite && (
                                                                 <Badge variant="outline" className="text-[10px] px-1 py-0 bg-amber-50 text-amber-700 border-amber-200">
                                                                     Site
