@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MessageSquare, Copy, Trash2, Calendar, Search, RefreshCw, UserCheck } from "lucide-react";
+import { MessageSquare, Copy, Trash2, Calendar, Search, RefreshCw, UserCheck, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { buildWhatsAppDeepLink } from "@/lib/scheduling-utils";
 import { formatPhone } from "@/lib/utils";
@@ -94,6 +94,25 @@ export default function AgendamentoPage() {
         } catch (error) {
             console.error("Erro uTalk:", error);
             toast.error("Erro ao conectar com API uTalk.");
+        }
+    };
+
+    const handleToggleCancel = async (app: Appointment) => {
+        const isCancelled = app.status?.toUpperCase() === "CANCELADO";
+        const newStatus = isCancelled ? "AGENDADO" : "CANCELADO";
+        try {
+            await updateAppointmentStatus(app.id, newStatus);
+            setAppointments((prev) =>
+                prev.map((a) => (a.id === app.id ? { ...a, status: newStatus } : a))
+            );
+            if (newStatus === "CANCELADO") {
+                toast.success(`Agendamento de ${app.patientName} cancelado.`);
+            } else {
+                toast.success(`Agendamento de ${app.patientName} reativado.`);
+            }
+        } catch (error) {
+            console.error("Erro ao alterar status do agendamento:", error);
+            toast.error("Erro ao alterar status do agendamento.");
         }
     };
 
@@ -204,76 +223,108 @@ export default function AgendamentoPage() {
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
-                                            {filteredAppointments.map((app) => (
-                                                <TableRow key={app.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 text-xs">
-                                                    <TableCell className="font-medium">
-                                                        <div className="font-semibold text-slate-900 dark:text-slate-100">{app.patientName}</div>
-                                                        <div className="text-slate-500 text-[11px] flex items-center gap-1 mt-0.5 flex-wrap">
-                                                            <span>{formatPhone(app.patientPhone)}</span>
-                                                            {(app.insurance || app.plan) && (
-                                                                <span className="text-slate-400">• {[app.insurance, app.plan].filter(Boolean).join(" - ")}</span>
-                                                            )}
-                                                            {app.fromWebsite && (
-                                                                <Badge variant="outline" className="text-[10px] px-1 py-0 bg-amber-50 text-amber-700 border-amber-200">
-                                                                    Site
-                                                                </Badge>
-                                                            )}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="text-slate-800 dark:text-slate-200 font-medium">{app.doctorName}</div>
-                                                        <div className="text-slate-500 text-[11px] truncate max-w-[140px]">{app.locationName}</div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="font-medium text-slate-800 dark:text-slate-200">
-                                                            {app.appointmentDate.split("-").reverse().join("/")}
-                                                        </div>
-                                                        <div className="text-slate-500 text-[11px]">{app.appointmentTime}</div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                                                            <UserCheck className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                                                            <span>{app.createdBy || (app.fromWebsite ? "Site" : "Usuário do Sistema")}</span>
-                                                        </div>
-                                                    </TableCell>
+                                            {filteredAppointments.map((app) => {
+                                                const isCancelled = app.status?.toUpperCase() === "CANCELADO";
+                                                return (
+                                                    <TableRow
+                                                        key={app.id}
+                                                        className={`text-xs transition-colors ${
+                                                            isCancelled
+                                                                ? "bg-red-50/80 dark:bg-red-950/40 hover:bg-red-100/80 dark:hover:bg-red-950/60"
+                                                                : "hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
+                                                        }`}
+                                                    >
+                                                        <TableCell className="font-medium">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={isCancelled ? "line-through text-red-700 dark:text-red-300 font-semibold" : "font-semibold text-slate-900 dark:text-slate-100"}>
+                                                                    {app.patientName}
+                                                                </span>
+                                                                {isCancelled && (
+                                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-red-100 dark:bg-red-900/60 text-red-700 dark:text-red-200 border-red-300 dark:border-red-800 font-semibold">
+                                                                        CANCELADO
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                            <div className="text-slate-500 text-[11px] flex items-center gap-1 mt-0.5 flex-wrap">
+                                                                <span>{formatPhone(app.patientPhone)}</span>
+                                                                {(app.insurance || app.plan) && (
+                                                                    <span className="text-slate-400">• {[app.insurance, app.plan].filter(Boolean).join(" - ")}</span>
+                                                                )}
+                                                                {app.fromWebsite && (
+                                                                    <Badge variant="outline" className="text-[10px] px-1 py-0 bg-amber-50 text-amber-700 border-amber-200">
+                                                                        Site
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="text-slate-800 dark:text-slate-200 font-medium">{app.doctorName}</div>
+                                                            <div className="text-slate-500 text-[11px] truncate max-w-[140px]">{app.locationName}</div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="font-medium text-slate-800 dark:text-slate-200">
+                                                                {app.appointmentDate.split("-").reverse().join("/")}
+                                                            </div>
+                                                            <div className="text-slate-500 text-[11px]">{app.appointmentTime}</div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                                                <UserCheck className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                                                                <span>{app.createdBy || (app.fromWebsite ? "Site" : "Usuário do Sistema")}</span>
+                                                            </div>
+                                                        </TableCell>
 
-                                                    <TableCell className="text-right">
-                                                        <div className="flex items-center justify-end gap-1">
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                                                title="Enviar via uTalk (WhatsApp)"
-                                                                onClick={() => handleSendUTalk(app)}
-                                                            >
-                                                                <MessageSquare className="h-3.5 w-3.5" />
-                                                            </Button>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-7 w-7 text-slate-600 hover:text-blue-600"
-                                                                title="Copiar Mensagem"
-                                                                onClick={() => handleCopyMessage(app)}
-                                                            >
-                                                                <Copy className="h-3.5 w-3.5" />
-                                                            </Button>
-                                                            {isAdmin && (
+                                                        <TableCell className="text-right">
+                                                            <div className="flex items-center justify-end gap-1">
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="icon"
-                                                                    className="h-7 w-7 text-slate-400 hover:text-red-600"
-                                                                    title="Excluir (Apenas Administrador)"
-                                                                    onClick={() => handleDelete(app.id)}
+                                                                    className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                                                    title="Enviar via uTalk (WhatsApp)"
+                                                                    onClick={() => handleSendUTalk(app)}
                                                                 >
-                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                    <MessageSquare className="h-3.5 w-3.5" />
                                                                 </Button>
-                                                            )}
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-7 w-7 text-slate-600 hover:text-blue-600"
+                                                                    title="Copiar Mensagem"
+                                                                    onClick={() => handleCopyMessage(app)}
+                                                                >
+                                                                    <Copy className="h-3.5 w-3.5" />
+                                                                </Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className={`h-7 w-7 ${
+                                                                        isCancelled
+                                                                            ? "text-slate-400 hover:text-green-600 hover:bg-green-50"
+                                                                            : "text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                                    }`}
+                                                                    title={isCancelled ? "Reativar Agendamento" : "Cancelar Agendamento"}
+                                                                    onClick={() => handleToggleCancel(app)}
+                                                                >
+                                                                    <XCircle className="h-3.5 w-3.5" />
+                                                                </Button>
+                                                                {isAdmin && (
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="h-7 w-7 text-slate-400 hover:text-red-600"
+                                                                        title="Excluir (Apenas Administrador)"
+                                                                        onClick={() => handleDelete(app.id)}
+                                                                    >
+                                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                                    </Button>
+                                                                )}
 
-                                                        </div>
-                                                    </TableCell>
+                                                            </div>
+                                                        </TableCell>
 
-                                                </TableRow>
-                                            ))}
+                                                    </TableRow>
+                                                );
+                                            })}
                                         </TableBody>
                                     </Table>
                                 </div>

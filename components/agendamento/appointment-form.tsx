@@ -48,6 +48,7 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
     const [appointmentTime, setAppointmentTime] = useState("09:00");
     const [locationName, setLocationName] = useState("Clínica CEOT");
     const [fromWebsite, setFromWebsite] = useState(false);
+    const [dontSendWhatsApp, setDontSendWhatsApp] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Live search filtered patients from DB (minimum 3 characters)
@@ -199,58 +200,61 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                 locationAddress: mappedAddress,
                 fromWebsite,
                 whatsappMessage: message,
-                whatsappSent: true,
+                whatsappSent: !dontSendWhatsApp,
                 status: "AGENDADO",
                 createdBy: createdByUser,
             });
 
-
-            // 2. Copy message to clipboard
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                await navigator.clipboard.writeText(message);
-            }
-
-            // 3. Prepare formatted phone number for uTalk API (+55...)
-            let toPhone = clean;
-            if (toPhone.length === 10 || toPhone.length === 11) {
-                toPhone = "+55" + toPhone;
-            } else if (toPhone.startsWith("55") && toPhone.length >= 12) {
-                toPhone = "+" + toPhone;
-            } else if (!toPhone.startsWith("+")) {
-                toPhone = "+" + toPhone;
-            }
-
-            // 4. Send message directly via uTalk API (same system used in consultations confirmation)
-            let utalkSuccess = false;
-            try {
-                const utalkRes = await fetch("/api/utalk/send", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        toPhone,
-                        message,
-                        contactName: patientName.trim(),
-                        doctorName,
-                    }),
-
-                });
-
-                if (utalkRes.ok) {
-                    utalkSuccess = true;
-                    toast.success("Consulta agendada! Mensagem enviada via uTalk (WhatsApp) e copiada para a área de transferência.");
-                } else {
-                    const errData = await utalkRes.json().catch(() => ({}));
-                    toast.warning(`Agendado e copiado! Erro uTalk (${errData.error || "Erro de API"}). Abrindo WhatsApp Web...`);
+            if (dontSendWhatsApp) {
+                toast.success("Consulta agendada no sistema sem envio de mensagem via WhatsApp.");
+            } else {
+                // 2. Copy message to clipboard
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(message);
                 }
-            } catch (utalkErr) {
-                console.error("Erro ao chamar uTalk API:", utalkErr);
-                toast.warning("Agendado e copiado! Não foi possível se conectar à API uTalk. Abrindo WhatsApp Web...");
-            }
 
-            // Fallback: Open WhatsApp Deep Link if uTalk fails
-            if (!utalkSuccess) {
-                const deepLink = buildWhatsAppDeepLink(clean, message);
-                window.open(deepLink, "_blank", "noopener,noreferrer");
+                // 3. Prepare formatted phone number for uTalk API (+55...)
+                let toPhone = clean;
+                if (toPhone.length === 10 || toPhone.length === 11) {
+                    toPhone = "+55" + toPhone;
+                } else if (toPhone.startsWith("55") && toPhone.length >= 12) {
+                    toPhone = "+" + toPhone;
+                } else if (!toPhone.startsWith("+")) {
+                    toPhone = "+" + toPhone;
+                }
+
+                // 4. Send message directly via uTalk API (same system used in consultations confirmation)
+                let utalkSuccess = false;
+                try {
+                    const utalkRes = await fetch("/api/utalk/send", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            toPhone,
+                            message,
+                            contactName: patientName.trim(),
+                            doctorName,
+                        }),
+
+                    });
+
+                    if (utalkRes.ok) {
+                        utalkSuccess = true;
+                        toast.success("Consulta agendada! Mensagem enviada via uTalk (WhatsApp) e copiada para a área de transferência.");
+                    } else {
+                        const errData = await utalkRes.json().catch(() => ({}));
+                        toast.warning(`Agendado e copiado! Erro uTalk (${errData.error || "Erro de API"}). Abrindo WhatsApp Web...`);
+                    }
+                } catch (utalkErr) {
+                    console.error("Erro ao chamar uTalk API:", utalkErr);
+                    toast.warning("Agendado e copiado! Não foi possível se conectar à API uTalk. Abrindo WhatsApp Web...");
+                }
+
+                // Fallback: Open WhatsApp Deep Link if uTalk fails
+                if (!utalkSuccess) {
+                    const deepLink = buildWhatsAppDeepLink(clean, message);
+                    window.open(deepLink, "_blank", "noopener,noreferrer");
+                }
             }
 
             // Reset patient input fields for next entry
@@ -258,6 +262,7 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
             setPatientPhone("");
             setInsurance("");
             setPlan("");
+            setDontSendWhatsApp(false);
             setShowSuggestions(false);
 
             if (onAppointmentCreated) {
@@ -521,14 +526,29 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                             <Label htmlFor="fromWebsite" className="text-sm font-semibold text-slate-800 dark:text-slate-200 cursor-pointer">
                                 Paciente veio do site?
                             </Label>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                                Salva no cabeçalho da nota Obsidian
-                            </p>
+
                         </div>
                         <Switch
                             id="fromWebsite"
                             checked={fromWebsite}
                             onChange={(e) => setFromWebsite(e.target.checked)}
+                        />
+                    </div>
+
+                    {/* Toggle: Não enviar mensagem por WhatsApp */}
+                    <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/40">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="dontSendWhatsApp" className="text-sm font-semibold text-slate-800 dark:text-slate-200 cursor-pointer">
+                                Não enviar mensagem pelo WhatsApp
+                            </Label>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                Grava o agendamento no sistema sem disparar a mensagem no WhatsApp
+                            </p>
+                        </div>
+                        <Switch
+                            id="dontSendWhatsApp"
+                            checked={dontSendWhatsApp}
+                            onChange={(e) => setDontSendWhatsApp(e.target.checked)}
                         />
                     </div>
 
