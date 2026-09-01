@@ -4,7 +4,8 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import Link from "next/link";
-import { Trash2, MessageCircle, Clock, Plus, Loader2, Upload, Pencil, User, Filter, X, MoreHorizontal, FileText, Archive, Search, Download, FileJson, ImageIcon, Check, ChevronsUpDown, ArchiveRestore, CalendarPlus } from "lucide-react";
+import { Trash2, MessageCircle, Clock, Plus, Loader2, Upload, Pencil, User, Filter, X, MoreHorizontal, FileText, Archive, Search, Download, FileJson, ImageIcon, Check, ChevronsUpDown, ArchiveRestore, CalendarPlus, ChevronLeft, ChevronRight, Phone } from "lucide-react";
+
 
 
 import jsPDF from "jspdf";
@@ -267,7 +268,27 @@ export default function ConsultasPage() {
         });
     }, [allPatients, historyFilterPatientName, historyFilterDoctorId, historyFilterHospitalId, historyFilterDate, historyFilterInsurance]);
 
+    // Pagination for History / Todos os Agendamentos
+    const [historyPage, setHistoryPage] = useState(1);
+    const HISTORY_PER_PAGE = 10;
+
+    useEffect(() => {
+        setHistoryPage(1);
+    }, [historyFilterPatientName, historyFilterDoctorId, historyFilterHospitalId, historyFilterDate, historyFilterInsurance]);
+
+    const sortedHistoryPatients = useMemo(() => {
+        return [...filteredHistoryPatients].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [filteredHistoryPatients]);
+
+    const totalHistoryPages = Math.ceil(sortedHistoryPatients.length / HISTORY_PER_PAGE) || 1;
+
+    const paginatedHistoryPatients = useMemo(() => {
+        const start = (historyPage - 1) * HISTORY_PER_PAGE;
+        return sortedHistoryPatients.slice(start, start + HISTORY_PER_PAGE);
+    }, [sortedHistoryPatients, historyPage]);
+
     const [showSuggestions, setShowSuggestions] = useState(false);
+
 
     // WhatsApp Dialog State
     const [isWhatsAppDialogOpen, setIsWhatsAppDialogOpen] = useState(false);
@@ -1563,8 +1584,7 @@ Posso confirmar sua presença?`;
                                                 </TableCell>
                                             </TableRow>
                                         ) : (
-                                            filteredHistoryPatients
-                                                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                            (exportType ? sortedHistoryPatients : paginatedHistoryPatients)
                                                 .map((patient) => (
                                                     <TableRow key={patient.id}>
                                                         <TableCell className="font-medium">
@@ -1575,8 +1595,18 @@ Posso confirmar sua presença?`;
                                                         </TableCell>
                                                         <TableCell>
                                                             <div className="flex flex-col">
-                                                                <span>{patient.patientName}</span>
-                                                                <span className="text-xs text-muted-foreground">{patient.insurance || "-"}</span>
+                                                                <span className="font-semibold text-slate-900 dark:text-slate-100">{patient.patientName}</span>
+                                                                <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
+                                                                    {patient.phone ? (
+                                                                        <span className="font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                                                                            <Phone className="w-3 h-3" />
+                                                                            {formatPhone(patient.phone)}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-slate-400">Sem contato</span>
+                                                                    )}
+                                                                    {patient.insurance && <span className="text-slate-400">• {patient.insurance}</span>}
+                                                                </div>
                                                             </div>
                                                         </TableCell>
                                                         {!exportType && (
@@ -1628,7 +1658,42 @@ Posso confirmar sua presença?`;
                                     </TableBody>
                                 </Table>
                             </div>
+
+                            {/* Paginação do Histórico (Todos os Agendamentos) */}
+                            {!exportType && !isLoadingAll && sortedHistoryPatients.length > 0 && (
+                                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 px-2">
+                                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                                        Exibindo {((historyPage - 1) * HISTORY_PER_PAGE) + 1} a {Math.min(historyPage * HISTORY_PER_PAGE, sortedHistoryPatients.length)} de {sortedHistoryPatients.length} consultas
+                                    </p>
+                                    <div className="flex items-center space-x-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 text-xs gap-1"
+                                            onClick={() => setHistoryPage((prev) => Math.max(prev - 1, 1))}
+                                            disabled={historyPage === 1}
+                                        >
+                                            <ChevronLeft className="h-4 w-4" />
+                                            Anterior
+                                        </Button>
+                                        <span className="text-xs font-medium px-2">
+                                            Página {historyPage} de {totalHistoryPages}
+                                        </span>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 text-xs gap-1"
+                                            onClick={() => setHistoryPage((prev) => Math.min(prev + 1, totalHistoryPages))}
+                                            disabled={historyPage >= totalHistoryPages}
+                                        >
+                                            Próxima
+                                            <ChevronRight className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </CardContent>
+
                     </Card>
                 </TabsContent>
             </Tabs>
