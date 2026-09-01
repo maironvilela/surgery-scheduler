@@ -10,18 +10,22 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MessageSquare, Copy, ExternalLink, Trash2, Calendar, Search, Filter, CheckCircle2, Clock, XCircle, RefreshCw } from "lucide-react";
+import { MessageSquare, Copy, Trash2, Calendar, Search, RefreshCw, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { buildWhatsAppDeepLink } from "@/lib/scheduling-utils";
 import { formatPhone } from "@/lib/utils";
 
+import { useSession } from "next-auth/react";
+
 export default function AgendamentoPage() {
+    const { data: session } = useSession();
+    const isAdmin = (session?.user as any)?.role === "admin";
     const [appointments, setAppointments] = useState<Appointment[]>([]);
+
     const [isLoading, setIsLoading] = useState(true);
 
     // Filters
     const [searchName, setSearchName] = useState("");
-    const [filterStatus, setFilterStatus] = useState<string>("all");
     const [filterDate, setFilterDate] = useState<string>("");
 
     const loadAppointments = async () => {
@@ -30,7 +34,8 @@ export default function AgendamentoPage() {
             const data = await getAppointments();
             setAppointments(data);
         } catch (error) {
-            toast.error("Erro ao carregar agendamentos.");
+            console.error("Erro ao carregar agendamentos:", error);
+            toast.error("Erro ao carregar lista de agendamentos.");
         } finally {
             setIsLoading(false);
         }
@@ -40,8 +45,8 @@ export default function AgendamentoPage() {
         loadAppointments();
     }, []);
 
-    const handleAppointmentCreated = (newAppointment: Appointment) => {
-        setAppointments((prev) => [newAppointment, ...prev]);
+    const handleAppointmentCreated = (newApp: Appointment) => {
+        setAppointments((prev) => [newApp, ...prev]);
     };
 
     const handleCopyMessage = async (app: Appointment) => {
@@ -73,8 +78,10 @@ export default function AgendamentoPage() {
                     toPhone,
                     message: app.whatsappMessage,
                     contactName: app.patientName,
+                    doctorName: app.doctorName,
                 }),
             });
+
 
             if (res.ok) {
                 toast.success(`Mensagem reenviada via uTalk para ${app.patientName}!`);
@@ -90,52 +97,31 @@ export default function AgendamentoPage() {
         }
     };
 
-    const handleOpenWhatsApp = (app: Appointment) => {
-        const link = buildWhatsAppDeepLink(app.patientPhone, app.whatsappMessage);
-        window.open(link, "_blank", "noopener,noreferrer");
-    };
-
-
-    const handleStatusChange = async (id: string, newStatus: string) => {
-        try {
-            const updated = await updateAppointmentStatus(id, newStatus);
-            setAppointments((prev) => prev.map((a) => (a.id === id ? updated : a)));
-            toast.success(`Status alterado para ${newStatus}`);
-        } catch (error) {
-            toast.error("Erro ao atualizar status.");
-        }
-    };
-
     const handleDelete = async (id: string) => {
-        if (!confirm("Deseja realmente remover este agendamento?")) return;
+        if (!confirm("Tem certeza que deseja excluir este agendamento?")) return;
+
         try {
             await deleteAppointment(id);
             setAppointments((prev) => prev.filter((a) => a.id !== id));
-            toast.success("Agendamento removido.");
+            toast.success("Agendamento excluído com sucesso!");
         } catch (error) {
             toast.error("Erro ao excluir agendamento.");
         }
     };
 
+    // Filter appointments by search query and date
     const filteredAppointments = useMemo(() => {
         return appointments.filter((app) => {
-            const matchesName = !searchName || app.patientName.toLowerCase().includes(searchName.toLowerCase()) || app.patientPhone.includes(searchName);
-            const matchesStatus = filterStatus === "all" || app.status === filterStatus;
-            const matchesDate = !filterDate || app.appointmentDate === filterDate;
-            return matchesName && matchesStatus && matchesDate;
-        });
-    }, [appointments, searchName, filterStatus, filterDate]);
+            const matchesSearch =
+                !searchName ||
+                app.patientName.toLowerCase().includes(searchName.toLowerCase()) ||
+                app.patientPhone.includes(searchName) ||
+                (app.createdBy && app.createdBy.toLowerCase().includes(searchName.toLowerCase()));
 
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case "AGENDADO":
-                return <Badge className="bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100">Agendado</Badge>;
-            case "CANCELADO":
-                return <Badge className="bg-red-100 text-red-800 border-red-200 hover:bg-red-100">Cancelado</Badge>;
-            default:
-                return <Badge variant="outline">{status}</Badge>;
-        }
-    };
+            const matchesDate = !filterDate || app.appointmentDate === filterDate;
+            return matchesSearch && matchesDate;
+        });
+    }, [appointments, searchName, filterDate]);
 
     return (
         <div className="container mx-auto py-8 px-4 max-w-7xl space-y-8">
@@ -178,27 +164,16 @@ export default function AgendamentoPage() {
                             </div>
 
                             {/* Filtros */}
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-3">
                                 <div className="relative">
                                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
                                     <Input
-                                        placeholder="Buscar por paciente/tel..."
+                                        placeholder="Buscar por paciente, tel, atendente..."
                                         value={searchName}
                                         onChange={(e) => setSearchName(e.target.value)}
                                         className="pl-8 text-xs h-9 bg-slate-50 dark:bg-slate-800"
                                     />
                                 </div>
-
-                                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                                    <SelectTrigger className="h-9 text-xs bg-slate-50 dark:bg-slate-800">
-                                        <SelectValue placeholder="Status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Todos os Status</SelectItem>
-                                        <SelectItem value="AGENDADO">Agendado</SelectItem>
-                                        <SelectItem value="CANCELADO">Cancelado</SelectItem>
-                                    </SelectContent>
-                                </Select>
 
                                 <Input
                                     type="date"
@@ -224,7 +199,7 @@ export default function AgendamentoPage() {
                                                 <TableHead className="text-xs">Paciente / Telefone</TableHead>
                                                 <TableHead className="text-xs">Médico & Local</TableHead>
                                                 <TableHead className="text-xs">Data / Horário</TableHead>
-                                                <TableHead className="text-xs">Status</TableHead>
+                                                <TableHead className="text-xs">Usuário Responsável</TableHead>
                                                 <TableHead className="text-xs text-right">Ações</TableHead>
                                             </TableRow>
                                         </TableHeader>
@@ -253,19 +228,12 @@ export default function AgendamentoPage() {
                                                         <div className="text-slate-500 text-[11px]">{app.appointmentTime}</div>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <div className="flex items-center gap-1">
-                                                            {getStatusBadge(app.status)}
-                                                            <Select value={app.status} onValueChange={(val) => handleStatusChange(app.id, val)}>
-                                                                <SelectTrigger className="h-6 text-[10px] w-6 p-0 border-0 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800">
-                                                                    <SelectValue placeholder="" />
-                                                                </SelectTrigger>
-                                                                <SelectContent>
-                                                                    <SelectItem value="AGENDADO">Agendado</SelectItem>
-                                                                    <SelectItem value="CANCELADO">Cancelado</SelectItem>
-                                                                </SelectContent>
-                                                            </Select>
+                                                        <div className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                                            <UserCheck className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                                                            <span>{app.createdBy || (app.fromWebsite ? "Site" : "Usuário do Sistema")}</span>
                                                         </div>
                                                     </TableCell>
+
                                                     <TableCell className="text-right">
                                                         <div className="flex items-center justify-end gap-1">
                                                             <Button
@@ -286,15 +254,18 @@ export default function AgendamentoPage() {
                                                             >
                                                                 <Copy className="h-3.5 w-3.5" />
                                                             </Button>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-7 w-7 text-slate-400 hover:text-red-600"
-                                                                title="Excluir"
-                                                                onClick={() => handleDelete(app.id)}
-                                                            >
-                                                                <Trash2 className="h-3.5 w-3.5" />
-                                                            </Button>
+                                                            {isAdmin && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-7 w-7 text-slate-400 hover:text-red-600"
+                                                                    title="Excluir (Apenas Administrador)"
+                                                                    onClick={() => handleDelete(app.id)}
+                                                                >
+                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                </Button>
+                                                            )}
+
                                                         </div>
                                                     </TableCell>
 

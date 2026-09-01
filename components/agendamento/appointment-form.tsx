@@ -15,6 +15,7 @@ import { formatPhone } from "@/lib/utils";
 import { toast } from "sonner";
 import { useDoctors } from "@/context/doctor-context";
 import { usePatients } from "@/context/patient-context";
+import { useSession } from "next-auth/react";
 import { Appointment } from "@/types";
 
 interface AppointmentFormProps {
@@ -22,8 +23,10 @@ interface AppointmentFormProps {
 }
 
 export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) {
+    const { data: session } = useSession();
     const { doctors: dbDoctors } = useDoctors();
-    const { patients: availablePatients } = usePatients();
+    const { patients: availablePatients, addPatient } = usePatients();
+
 
     // Default today's date formatted as YYYY-MM-DD
     const todayStr = useMemo(() => {
@@ -55,12 +58,14 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
     }, [patientName, availablePatients]);
 
 
-    // Merge doctors from constants and database
+    // Doctor options loaded directly from Doctor database table
     const doctorOptions = useMemo(() => {
-        const staticNames = DOCTORS_MAPPING.map((d) => d.name);
-        const dbNames = dbDoctors.map((d) => d.name).filter((n) => !staticNames.includes(n));
-        return [...staticNames, ...dbNames];
+        if (dbDoctors && dbDoctors.length > 0) {
+            return dbDoctors.filter((d) => d.status !== "inactive").map((d) => d.name);
+        }
+        return DOCTORS_MAPPING.map((d) => d.name);
     }, [dbDoctors]);
+
 
 
     // Automatic Specialty Mapping
@@ -131,9 +136,38 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
         setIsSubmitting(true);
 
         try {
-            // Generate full WhatsApp message
+            // 0. Auto-register patient if not already registered in patients table
+            const trimmedPatientName = patientName.trim();
+            const existingPatient = availablePatients.find(
+                (p) => p.name.toLowerCase().trim() === trimmedPatientName.toLowerCase()
+            );
+
+            if (!existingPatient) {
+                try {
+                    await addPatient({
+                        name: trimmedPatientName,
+                        phone: clean,
+                        gender: "other",
+                        insurance: "Particular",
+                        plan: "",
+                        birthDate: "",
+                        cep: "",
+                        street: "",
+                        number: "",
+                        complement: "",
+                        neighborhood: "",
+                        city: "",
+                        state: "",
+                        email: "",
+                    });
+                } catch (patErr) {
+                    console.error("Erro ao salvar novo paciente:", patErr);
+                }
+            }
+
+            // 1. Build WhatsApp message text
             const { fullDatetimeString, message } = buildWhatsAppMessage({
-                patientName: patientName.trim(),
+                patientName: trimmedPatientName,
                 doctorName,
                 specialty: mappedSpecialty,
                 dateStr: appointmentDate,
@@ -142,9 +176,15 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                 locationAddress: mappedAddress,
             });
 
-            // 1. Save record to DB
+
+            // Save appointment to DB via Server Action
+            const createdByUser = fromWebsite
+                ? "Site"
+                : (session?.user?.name || session?.user?.email || "Usuário do Sistema");
+
+
             const newAppointment = await createAppointment({
-                patientName: patientName.trim(),
+                patientName: trimmedPatientName,
                 patientPhone: clean,
                 doctorName,
                 specialty: mappedSpecialty,
@@ -157,7 +197,9 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                 whatsappMessage: message,
                 whatsappSent: true,
                 status: "AGENDADO",
+                createdBy: createdByUser,
             });
+
 
             // 2. Copy message to clipboard
             if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -184,7 +226,9 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                         toPhone,
                         message,
                         contactName: patientName.trim(),
+                        doctorName,
                     }),
+
                 });
 
                 if (utalkRes.ok) {
@@ -456,7 +500,7 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                         ) : (
                             <>
                                 <span className="text-lg">📋</span>
-                                Agendar e Copiar Mensagem
+                                Confirmar Agendamento
                             </>
                         )}
                     </Button>

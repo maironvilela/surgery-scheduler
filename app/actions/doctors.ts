@@ -4,8 +4,28 @@ import prisma from "@/lib/prisma";
 import { Doctor } from "@/types";
 import { revalidatePath } from "next/cache";
 
+const DEFAULT_DOCTORS = [
+    { crm: "MG-1001", name: "Dr. Rômulo Oliveira", specialty: "Ortopedia (Especialista em Coluna)", status: "active" },
+    { crm: "MG-1002", name: "Dr. Sávio Laborne", specialty: "Ortopedia (Especialista em Coluna)", status: "active" },
+    { crm: "MG-1003", name: "Dr. Jader de Andrade", specialty: "Ortopedia (Especialista em Coluna)", status: "active" },
+    { crm: "MG-1004", name: "Dr. Tiago Falci", specialty: "Ortopedia (Especialista em Coluna)", status: "active" },
+    { crm: "MG-1005", name: "Dra. Iara Fernandes", specialty: "Reumatologia", status: "active" },
+];
+
 export async function getDoctors() {
     try {
+        // Auto-seed missing default doctors into DB table
+        for (const doc of DEFAULT_DOCTORS) {
+            const existing = await prisma.doctor.findFirst({
+                where: {
+                    OR: [{ name: doc.name }, { crm: doc.crm }],
+                },
+            });
+            if (!existing) {
+                await prisma.doctor.create({ data: doc });
+            }
+        }
+
         const doctors = await prisma.doctor.findMany({
             orderBy: { name: 'asc' }
         });
@@ -20,6 +40,7 @@ export async function getDoctors() {
         return [];
     }
 }
+
 
 export async function addDoctor(data: Omit<Doctor, "id" | "createdAt" | "updatedAt">) {
     try {

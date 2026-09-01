@@ -176,6 +176,7 @@ model Appointment {
   whatsappMessage    String   @map("whatsapp_message")
   whatsappSent       Boolean  @default(false) @map("whatsapp_sent")
   status             String   @default("AGENDADO")
+  createdBy          String?  @default("Atendente") @map("created_by")
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
 
@@ -184,4 +185,5 @@ model Appointment {
   @@index([doctorName])
   @@map("appointments")
 }
+
 

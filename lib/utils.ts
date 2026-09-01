@@ -8,7 +8,12 @@ export function cn(...inputs: ClassValue[]) {
 export function formatPhone(value: string) {
   if (!value) return "";
 
-  const r = value.replace(/\D/g, "");
+  let r = value.replace(/\D/g, "");
+
+  // Strip Brazil country code (55) if present for 12 or 13 digit numbers
+  if (r.startsWith("55") && (r.length === 12 || r.length === 13)) {
+    r = r.substring(2);
+  }
 
   if (r.length > 10) {
     return r.replace(/^(\d\d)(\d{5})(\d{4}).*/, "($1) $2-$3");
@@ -24,6 +29,7 @@ export function formatPhone(value: string) {
 
   return r;
 }
+
 
 export function toTitleCase(str: string) {
   if (!str) return "";

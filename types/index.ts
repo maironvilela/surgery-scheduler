@@ -152,8 +152,9 @@ export interface Appointment {
     whatsappMessage: string;
     whatsappSent: boolean;
     status: 'AGENDADO' | 'CANCELADO' | string;
-
+    createdBy?: string;
     createdAt: string;
+
     updatedAt: string;
 }
 

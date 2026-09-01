@@ -21,8 +21,10 @@ export async function createAppointment(data: Omit<Appointment, "id" | "createdA
                 whatsappMessage: data.whatsappMessage,
                 whatsappSent: data.whatsappSent,
                 status: data.status || "AGENDADO",
+                createdBy: data.createdBy || "Atendente",
             },
         });
+
 
         revalidatePath("/agendamento");
         revalidatePath("/consultas");

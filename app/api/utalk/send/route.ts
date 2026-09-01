@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
+import { getDoctorSenderPhone } from '@/lib/constants/scheduling';
 
 const DEFAULT_UTALK_TOKEN = "Teste-2026-01-13-2094-02-01--E1663E54181A9EB56AA95A0389AF29F38EE4480E4F6454C33E38672BEE155953";
 const DEFAULT_UTALK_ORG_ID = "aUPnlGY0VXoPxraR";
-const DEFAULT_UTALK_FROM_PHONE = "+5531971041077=";
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { toPhone, message, contactName } = body;
+        const { toPhone, message, contactName, doctorName, fromPhone } = body;
 
         if (!toPhone || !message) {
             return NextResponse.json({ error: 'Telefone e mensagem são obrigatórios' }, { status: 400 });
@@ -15,7 +15,9 @@ export async function POST(request: Request) {
 
         const utalkToken = process.env.UTALK_API_TOKEN || DEFAULT_UTALK_TOKEN;
         const utalkOrgId = process.env.UTALK_ORGANIZATION_ID || DEFAULT_UTALK_ORG_ID;
-        const utalkFromPhone = process.env.UTALK_FROM_PHONE || DEFAULT_UTALK_FROM_PHONE;
+
+        // Determine specific sender phone based on selected doctor
+        const utalkFromPhone = fromPhone || (doctorName ? getDoctorSenderPhone(doctorName) : (process.env.UTALK_FROM_PHONE || "+5531971041077="));
 
         const payload = {
             toPhone: toPhone,
@@ -26,6 +28,7 @@ export async function POST(request: Request) {
             skipReassign: false,
             contactName: contactName || "Paciente"
         };
+
 
         const response = await fetch("https://app-utalk.umbler.com/api/v1/messages/simplified/", {
             method: "POST",

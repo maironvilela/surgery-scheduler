@@ -2,6 +2,7 @@ export interface DoctorMapping {
     name: string;
     specialty: string;
     treatment: string; // "⚕️ Médico" | "⚕️ Médica"
+    senderPhone?: string;
 }
 
 export interface LocationMapping {
@@ -13,29 +14,60 @@ export const DOCTORS_MAPPING: DoctorMapping[] = [
     {
         name: "Dr. Rômulo Oliveira",
         specialty: "Ortopedia (Especialista em Coluna)",
-        treatment: "⚕️ Médico"
+        treatment: "⚕️ Médico",
+        senderPhone: "+5531996689572="
     },
     {
         name: "Dr. Sávio Laborne",
         specialty: "Ortopedia (Especialista em Coluna)",
-        treatment: "⚕️ Médico"
+        treatment: "⚕️ Médico",
+        senderPhone: "+5531982257480="
     },
     {
         name: "Dr. Jader de Andrade",
         specialty: "Ortopedia (Especialista em Coluna)",
-        treatment: "⚕️ Médico"
+        treatment: "⚕️ Médico",
+        senderPhone: "+5531996689572="
     },
     {
         name: "Dr. Tiago Falci",
         specialty: "Ortopedia (Especialista em Coluna)",
-        treatment: "⚕️ Médico"
+        treatment: "⚕️ Médico",
+        senderPhone: "+5531992019390="
     },
     {
         name: "Dra. Iara Fernandes",
         specialty: "Reumatologia",
-        treatment: "⚕️ Médica"
+        treatment: "⚕️ Médica",
+        senderPhone: "+5531990732896="
     }
 ];
+
+export function getDoctorSenderPhone(doctorName: string): string {
+    if (!doctorName) return process.env.UTALK_FROM_PHONE || "+5531971041077=";
+    const docNameLower = doctorName.toLowerCase();
+
+    const matched = DOCTORS_MAPPING.find((d) => doctorName.toLowerCase().includes(d.name.toLowerCase()) || d.name.toLowerCase().includes(doctorName.toLowerCase()));
+    if (matched && matched.senderPhone) {
+        return matched.senderPhone;
+    }
+
+    if (docNameLower.includes("rômulo") || docNameLower.includes("romulo") || docNameLower.includes("jader")) {
+        return "+5531996689572=";
+    }
+    if (docNameLower.includes("sávio") || docNameLower.includes("savio")) {
+        return "+5531982257480=";
+    }
+    if (docNameLower.includes("tiago")) {
+        return "+5531992019390=";
+    }
+    if (docNameLower.includes("iara")) {
+        return "+5531990732896=";
+    }
+
+    return process.env.UTALK_FROM_PHONE || "+5531971041077=";
+}
+
 
 export const LOCATIONS_MAPPING: LocationMapping[] = [
     {
