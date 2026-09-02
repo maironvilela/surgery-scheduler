@@ -160,8 +160,8 @@ export const MOCK_DOCTORS: Doctor[] = [
     },
     {
         id: "3",
-        crm: "654321",
-        name: "Dr. Romulo Oliveira",
+        crm: "MG-1001",
+        name: "Dr. Rômulo Oliveira",
         specialty: "Ortopedista (Coluna)",
         status: "active",
         createdAt: new Date("2024-02-10").toISOString(),

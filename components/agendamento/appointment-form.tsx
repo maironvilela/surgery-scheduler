@@ -63,10 +63,10 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
     const [plan, setPlan] = useState("");
     const [amount, setAmount] = useState("");
     const [showSuggestions, setShowSuggestions] = useState(false);
-    const [doctorName, setDoctorName] = useState("Dr. Jader de Andrade");
+    const [doctorName, setDoctorName] = useState("");
     const [appointmentDate, setAppointmentDate] = useState(todayStr);
     const [appointmentTime, setAppointmentTime] = useState("09:00");
-    const [locationName, setLocationName] = useState("Clínica CEOT");
+    const [locationName, setLocationName] = useState("");
     const [fromWebsite, setFromWebsite] = useState(false);
     const [patientSource, setPatientSource] = useState<string>("Paciente");
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -75,6 +75,19 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [pendingAppointment, setPendingAppointment] = useState<PendingAppointment | null>(null);
     const [copiedMessage, setCopiedMessage] = useState(false);
+
+    // Form Validation Check
+    const isFormValid = useMemo(() => {
+        if (!patientName || !patientName.trim()) return false;
+        const { isValid } = sanitizePhoneNumber(patientPhone);
+        if (!isValid) return false;
+        if (!doctorName || !doctorName.trim()) return false;
+        if (!locationName || !locationName.trim()) return false;
+        if (!appointmentDate || !appointmentDate.trim()) return false;
+        if (!appointmentTime || !appointmentTime.trim()) return false;
+        if (appointmentType === "Particular" && (!amount || !amount.trim())) return false;
+        return true;
+    }, [patientName, patientPhone, doctorName, locationName, appointmentDate, appointmentTime, appointmentType, amount]);
 
     // Live search filtered patients from DB (minimum 3 characters)
     const filteredPatients = useMemo(() => {
@@ -95,6 +108,7 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
 
     // Automatic Specialty Mapping
     const mappedSpecialty = useMemo(() => {
+        if (!doctorName) return "";
         const matchedDoctor = DOCTORS_MAPPING.find((d) => d.name === doctorName);
         if (matchedDoctor) return matchedDoctor.specialty;
 
@@ -106,9 +120,10 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
 
     // Automatic Address Mapping
     const mappedAddress = useMemo(() => {
+        if (!locationName) return "";
         const matchedLoc = LOCATIONS_MAPPING.find((l) => l.name === locationName);
         if (matchedLoc) return matchedLoc.address;
-        return "Rua São Paulo, 1818, Lourdes - BH/MG";
+        return "";
     }, [locationName]);
 
     // Live preview of formatted extended date string
@@ -339,6 +354,8 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
             // Reset form fields
             setPatientName("");
             setPatientPhone("");
+            setDoctorName("");
+            setLocationName("");
             setInsurance("");
             setPlan("");
             setAmount("");
@@ -849,7 +866,7 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                             </Label>
                             <Select value={locationName} onValueChange={setLocationName}>
                                 <SelectTrigger className="bg-slate-50/50 dark:bg-slate-800 border-slate-200 text-slate-900 dark:text-slate-100">
-                                    <SelectValue placeholder="Selecione o local" />
+                                    <SelectValue placeholder="Selecione o local de atendimento" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {LOCATIONS_MAPPING.map((loc) => (
@@ -860,10 +877,16 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                                 </SelectContent>
                             </Select>
 
-                            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 pt-1 px-0.5">
-                                <span className="text-red-500 text-sm">📍</span>
-                                <span>{mappedAddress}</span>
-                            </div>
+                            {mappedAddress ? (
+                                <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 pt-1 px-0.5">
+                                    <span className="text-red-500 text-sm">📍</span>
+                                    <span>{mappedAddress}</span>
+                                </div>
+                            ) : (
+                                <div className="text-xs text-slate-400 dark:text-slate-500 pt-1 px-0.5 italic">
+                                    Selecione um local para visualizar o endereço.
+                                </div>
+                            )}
                         </div>
 
                         {/* Preview de Data por Extenso */}
@@ -877,18 +900,25 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                         )}
 
                         {/* Botão de Agendar Consulta */}
-                        <Button
-                            type="submit"
-                            disabled={appointmentType === "Particular" && !amount.trim()}
-                            className={`w-full font-medium py-3 h-12 rounded-xl text-base shadow-sm transition-all duration-200 flex items-center justify-center gap-2 ${
-                                appointmentType === "Particular" && !amount.trim()
-                                    ? "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300 dark:border-slate-700"
-                                    : "bg-blue-600 hover:bg-blue-700 text-white cursor-pointer active:scale-[0.99]"
-                            }`}
-                        >
-                            <span className="text-lg">📋</span>
-                            Agendar Consulta
-                        </Button>
+                        <div className="space-y-2 pt-1">
+                            <Button
+                                type="submit"
+                                disabled={!isFormValid || isSubmitting}
+                                className={`w-full font-medium py-3 h-12 rounded-xl text-base shadow-sm transition-all duration-200 flex items-center justify-center gap-2 ${
+                                    !isFormValid || isSubmitting
+                                        ? "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300 dark:border-slate-700"
+                                        : "bg-blue-600 hover:bg-blue-700 text-white cursor-pointer active:scale-[0.99]"
+                                }`}
+                            >
+                                <span className="text-lg">📋</span>
+                                Agendar Consulta
+                            </Button>
+                            {!isFormValid && (
+                                <p className="text-center text-xs text-amber-600 dark:text-amber-400 font-medium">
+                                    ⚠️ Preencha todos os campos obrigatórios (* Paciente, Telefone, Médico, Data, Horário e Local) para habilitar o agendamento.
+                                </p>
+                            )}
+                        </div>
                     </form>
                 </CardContent>
             </Card>

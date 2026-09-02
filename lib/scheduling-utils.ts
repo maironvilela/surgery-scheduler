@@ -95,7 +95,7 @@ export function buildWhatsAppMessage(params: {
 
     const message = `✅ Consulta Agendada com Sucesso!
 
-Olá! Seguem os detalhes do seu atendimento:
+Olá! Tudo bem? Segue abaixo os detalhes do seu agendamento:
 
 👤 Paciente: ${formattedPatientName}
 ${doctorLabel}: ${doctorName}

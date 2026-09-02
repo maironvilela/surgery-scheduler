@@ -18,21 +18,43 @@ export async function getDoctors() {
         for (const doc of DEFAULT_DOCTORS) {
             const existing = await prisma.doctor.findFirst({
                 where: {
-                    OR: [{ name: doc.name }, { crm: doc.crm }],
+                    OR: [
+                        { name: doc.name },
+                        { crm: doc.crm },
+                        { name: doc.name.replace("Rômulo", "Romulo") }
+                    ],
                 },
             });
             if (!existing) {
                 await prisma.doctor.create({ data: doc });
+            } else if (existing.name !== doc.name) {
+                await prisma.doctor.update({
+                    where: { id: existing.id },
+                    data: { name: doc.name, crm: doc.crm }
+                }).catch(() => {});
             }
         }
 
-        const doctors = await prisma.doctor.findMany({
-            orderBy: { name: 'asc' }
-        });
-        return doctors.map((d: any) => ({
+        // Clean up duplicate entries in DB table
+        const allDocs = await prisma.doctor.findMany({ orderBy: { createdAt: 'asc' } });
+        const seenNames = new Set<string>();
+        const uniqueDocs: any[] = [];
+
+        for (const d of allDocs) {
+            const norm = d.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+            if (seenNames.has(norm)) {
+                // Delete duplicate record from DB
+                await prisma.doctor.delete({ where: { id: d.id } }).catch(() => {});
+            } else {
+                seenNames.add(norm);
+                uniqueDocs.push(d);
+            }
+        }
+
+        return uniqueDocs.map((d: any) => ({
             ...d,
-            createdAt: d.createdAt.toISOString(),
-            updatedAt: d.updatedAt.toISOString(),
+            createdAt: d.createdAt ? d.createdAt.toISOString() : new Date().toISOString(),
+            updatedAt: d.updatedAt ? d.updatedAt.toISOString() : new Date().toISOString(),
             status: d.status as 'active' | 'inactive'
         })) as Doctor[];
     } catch (error) {
