@@ -8,21 +8,20 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MessageSquare, Copy, Trash2, Calendar, Search, RefreshCw, UserCheck, XCircle } from "lucide-react";
+import { MessageSquare, Copy, Trash2, Calendar, Search, RefreshCw, UserCheck, XCircle, FileText, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { buildWhatsAppDeepLink } from "@/lib/scheduling-utils";
 import { formatPhone, toTitleCase } from "@/lib/utils";
-
 import { useSession } from "next-auth/react";
 
 export default function AgendamentoPage() {
     const { data: session } = useSession();
     const isAdmin = (session?.user as any)?.role === "admin";
     const [appointments, setAppointments] = useState<Appointment[]>([]);
-
     const [isLoading, setIsLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<string>("agendamento");
 
     // Filters
     const [searchName, setSearchName] = useState("");
@@ -47,6 +46,7 @@ export default function AgendamentoPage() {
 
     const handleAppointmentCreated = (newApp: Appointment) => {
         setAppointments((prev) => [newApp, ...prev]);
+        setActiveTab("todos");
     };
 
     const handleCopyMessage = async (app: Appointment) => {
@@ -81,7 +81,6 @@ export default function AgendamentoPage() {
                     doctorName: app.doctorName,
                 }),
             });
-
 
             if (res.ok) {
                 toast.success(`Mensagem reenviada via uTalk para ${app.patientName}!`);
@@ -143,14 +142,14 @@ export default function AgendamentoPage() {
     }, [appointments, searchName, filterDate]);
 
     return (
-        <div className="container mx-auto py-8 px-4 max-w-7xl space-y-8">
+        <div className="container mx-auto py-8 px-4 max-w-7xl space-y-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b pb-4">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
                         Agendamento de Consultas
                     </h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Cadastre agendamentos, gere mensagens formatadas e envie via uTalk WhatsApp.
+                        Cadastre agendamentos, gere mensagens formatadas e acompanhe o histórico de agendamentos.
                     </p>
                 </div>
                 <Button variant="outline" size="sm" onClick={loadAppointments} className="self-start md:self-auto gap-2">
@@ -159,15 +158,30 @@ export default function AgendamentoPage() {
                 </Button>
             </div>
 
-            {/* Layout em Grid / Colunas */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                {/* Form Card */}
-                <div className="lg:col-span-5">
-                    <AppointmentForm onAppointmentCreated={handleAppointmentCreated} />
-                </div>
+            {/* Abas da Página Centralizadas */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 w-full flex flex-col items-center">
+                <TabsList className="grid w-full max-w-[600px] grid-cols-2 rounded-xl p-1 bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 shadow-sm h-12">
+                    <TabsTrigger
+                        value="agendamento"
+                        className="rounded-lg text-sm font-medium transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-md"
+                    >
+                        Agendamento
+                    </TabsTrigger>
+                    <TabsTrigger
+                        value="todos"
+                        className="rounded-lg text-sm font-medium transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-md"
+                    >
+                        Todos os Agendamentos
+                    </TabsTrigger>
+                </TabsList>
 
-                {/* Recent Appointments List */}
-                <div className="lg:col-span-7 space-y-4">
+                {/* Aba 1: Formulário de Agendamento */}
+                <TabsContent value="agendamento" className="space-y-6 w-full">
+                    <AppointmentForm onAppointmentCreated={handleAppointmentCreated} />
+                </TabsContent>
+
+                {/* Aba 2: Lista de Todos os Agendamentos */}
+                <TabsContent value="todos" className="space-y-6 w-full">
                     <Card className="border border-slate-200 dark:border-slate-800 shadow-sm">
                         <CardHeader className="pb-3">
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -177,12 +191,12 @@ export default function AgendamentoPage() {
                                         Agendamentos Cadastrados ({filteredAppointments.length})
                                     </CardTitle>
                                     <CardDescription className="text-xs text-slate-500">
-                                        Histórico de agendamentos no banco de dados.
+                                        Histórico completo de agendamentos gravados no sistema.
                                     </CardDescription>
                                 </div>
                             </div>
 
-                            {/* Filtros */}
+                            {/* Filtros da Lista */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-3">
                                 <div className="relative">
                                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
@@ -324,10 +338,8 @@ export default function AgendamentoPage() {
                                                                         <Trash2 className="h-3.5 w-3.5" />
                                                                     </Button>
                                                                 )}
-
                                                             </div>
                                                         </TableCell>
-
                                                     </TableRow>
                                                 );
                                             })}
@@ -337,8 +349,9 @@ export default function AgendamentoPage() {
                             )}
                         </CardContent>
                     </Card>
-                </div>
-            </div>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }
+
