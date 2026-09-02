@@ -16,6 +16,19 @@ import { buildWhatsAppDeepLink } from "@/lib/scheduling-utils";
 import { formatPhone, toTitleCase } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 
+function formatCreatedDate(isoStr?: string) {
+    if (!isoStr) return "-";
+    try {
+        const d = new Date(isoStr);
+        if (isNaN(d.getTime())) return "-";
+        const dateStr = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+        const timeStr = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        return `${dateStr} ${timeStr}`;
+    } catch {
+        return "-";
+    }
+}
+
 export default function AgendamentoPage() {
     const { data: session } = useSession();
     const isAdmin = (session?.user as any)?.role === "admin";
@@ -231,7 +244,8 @@ export default function AgendamentoPage() {
                                             <TableRow className="bg-slate-50 dark:bg-slate-800/50">
                                                 <TableHead className="text-xs">Paciente / Telefone</TableHead>
                                                 <TableHead className="text-xs">Médico & Local</TableHead>
-                                                <TableHead className="text-xs">Data / Horário</TableHead>
+                                                <TableHead className="text-xs">Data da Consulta</TableHead>
+                                                <TableHead className="text-xs">Realizado em</TableHead>
                                                 <TableHead className="text-xs">Usuário Responsável</TableHead>
                                                 <TableHead className="text-xs text-right">Ações</TableHead>
                                             </TableRow>
@@ -286,6 +300,11 @@ export default function AgendamentoPage() {
                                                                 {app.appointmentDate.split("-").reverse().join("/")}
                                                             </div>
                                                             <div className="text-slate-500 text-[11px]">{app.appointmentTime}</div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="font-medium text-slate-800 dark:text-slate-200">
+                                                                {formatCreatedDate(app.createdAt)}
+                                                            </div>
                                                         </TableCell>
                                                         <TableCell>
                                                             <div className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
