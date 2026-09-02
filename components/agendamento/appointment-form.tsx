@@ -564,7 +564,7 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                                                     <span>Tabela de Valores de Consulta</span>
                                                 </div>
 
-                                                <div className="space-y-2.5 text-slate-700 dark:text-slate-300">
+                                                <div className="space-y-2.5 text-slate-700 dark:text-slate-300 max-h-72 overflow-y-auto pr-1">
                                                     {/* Dr. Jader */}
                                                     <div>
                                                         <span className="font-semibold text-slate-900 dark:text-slate-100 block text-[12px]">Dr. Jader</span>
@@ -630,6 +630,60 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                                                             >
                                                                 <span>• Paciente SUS</span>
                                                                 <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 350,00</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Dr. Tiago */}
+                                                    <div>
+                                                        <span className="font-semibold text-slate-900 dark:text-slate-100 block text-[12px]">Dr. Tiago</span>
+                                                        <div className="pl-2 space-y-0.5 text-[11px] mt-0.5">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setAmount("600,00")}
+                                                                className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
+                                                            >
+                                                                <span>• Presencial</span>
+                                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 600,00</span>
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setAmount("600,00")}
+                                                                className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
+                                                            >
+                                                                <span>• On-line</span>
+                                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 600,00</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Dr. Rômulo */}
+                                                    <div>
+                                                        <span className="font-semibold text-slate-900 dark:text-slate-100 block text-[12px]">Dr. Rômulo</span>
+                                                        <div className="pl-2 space-y-0.5 text-[11px] mt-0.5">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setAmount("350,00")}
+                                                                className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
+                                                            >
+                                                                <span>• Numai</span>
+                                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 350,00</span>
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setAmount("350,00")}
+                                                                className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
+                                                            >
+                                                                <span>• Centra</span>
+                                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 350,00</span>
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setAmount("550,00")}
+                                                                className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
+                                                            >
+                                                                <span>• Biocor</span>
+                                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 550,00</span>
                                                             </button>
                                                         </div>
                                                     </div>
