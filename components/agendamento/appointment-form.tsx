@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Calendar as CalendarIcon, Clock, MapPin, Copy, ExternalLink, Check, Loader2, FileText, Phone, User, DollarSign, Send, Save, MessageSquare } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, MapPin, Copy, ExternalLink, Check, Loader2, FileText, Phone, User, DollarSign, Send, Save, MessageSquare, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import {
     Dialog,
     DialogContent,
@@ -543,9 +544,103 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                                 </div>
                             ) : (
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="amount" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                                        Valor da Consulta (R$) <span className="text-red-500">*</span>
-                                    </Label>
+                                    <div className="flex items-center gap-1.5">
+                                        <Label htmlFor="amount" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                            Valor da Consulta (R$) <span className="text-red-500">*</span>
+                                        </Label>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex items-center justify-center text-slate-400 hover:text-blue-600 transition-colors p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                                                    title="Ver Tabela de Valores por Profissional"
+                                                >
+                                                    <HelpCircle className="h-4 w-4" />
+                                                </button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-80 p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-xl text-xs space-y-2.5 z-50">
+                                                <div className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5 border-b pb-2 text-xs">
+                                                    <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                                    <span>Tabela de Valores de Consulta</span>
+                                                </div>
+
+                                                <div className="space-y-2.5 text-slate-700 dark:text-slate-300">
+                                                    {/* Dr. Jader */}
+                                                    <div>
+                                                        <span className="font-semibold text-slate-900 dark:text-slate-100 block text-[12px]">Dr. Jader</span>
+                                                        <div className="pl-2 space-y-0.5 text-[11px] mt-0.5">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setAmount("650,00")}
+                                                                className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
+                                                            >
+                                                                <span>• Presencial</span>
+                                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 650,00</span>
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setAmount("800,00")}
+                                                                className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
+                                                            >
+                                                                <span>• On-line</span>
+                                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 800,00</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Dr. Sávio */}
+                                                    <div>
+                                                        <span className="font-semibold text-slate-900 dark:text-slate-100 block text-[12px]">Dr. Sávio</span>
+                                                        <div className="pl-2 space-y-0.5 text-[11px] mt-0.5">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setAmount("850,00")}
+                                                                className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
+                                                            >
+                                                                <span>• Presencial</span>
+                                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 850,00</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Dra. Iara */}
+                                                    <div>
+                                                        <span className="font-semibold text-slate-900 dark:text-slate-100 block text-[12px]">Dra. Iara</span>
+                                                        <div className="pl-2 space-y-0.5 text-[11px] mt-0.5">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setAmount("600,00")}
+                                                                className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
+                                                            >
+                                                                <span>• 1º Consulta</span>
+                                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 600,00</span>
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setAmount("450,00")}
+                                                                className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
+                                                            >
+                                                                <span>• Para pacientes</span>
+                                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 450,00</span>
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setAmount("350,00")}
+                                                                className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
+                                                            >
+                                                                <span>• Paciente SUS</span>
+                                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 350,00</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <p className="text-[10px] text-slate-400 dark:text-slate-500 pt-1 border-t text-center italic">
+                                                    Clique num valor para preencher automaticamente.
+                                                </p>
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
                                     <div className="relative">
                                         <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                                         <Input
