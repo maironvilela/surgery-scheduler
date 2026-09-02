@@ -73,6 +73,30 @@ export default function AgendamentoPage() {
         }
     };
 
+    const handleCopyPatientName = async (name: string) => {
+        try {
+            const formatted = toTitleCase(name);
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(formatted);
+                toast.success("Nome do paciente copiado!");
+            }
+        } catch (error) {
+            toast.error("Erro ao copiar nome do paciente.");
+        }
+    };
+
+    const handleCopyPhone = async (phone: string) => {
+        try {
+            const formatted = formatPhone(phone);
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(formatted);
+                toast.success("Telefone copiado!");
+            }
+        } catch (error) {
+            toast.error("Erro ao copiar telefone.");
+        }
+    };
+
     const handleSendUTalk = async (app: Appointment) => {
         let toPhone = app.patientPhone.replace(/\D/g, "");
         if (toPhone.length === 10 || toPhone.length === 11) {
@@ -242,7 +266,8 @@ export default function AgendamentoPage() {
                                     <Table>
                                         <TableHeader>
                                             <TableRow className="bg-slate-50 dark:bg-slate-800/50">
-                                                <TableHead className="text-xs">Paciente / Telefone</TableHead>
+                                                <TableHead className="text-xs">Paciente</TableHead>
+                                                <TableHead className="text-xs">Telefone</TableHead>
                                                 <TableHead className="text-xs">Médico & Local</TableHead>
                                                 <TableHead className="text-xs">Data da Consulta</TableHead>
                                                 <TableHead className="text-xs">Realizado em</TableHead>
@@ -262,11 +287,21 @@ export default function AgendamentoPage() {
                                                                 : "hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
                                                         }`}
                                                     >
+                                                        {/* Coluna 1: Paciente */}
                                                         <TableCell className="font-medium">
-                                                            <div className="flex items-center gap-2">
+                                                            <div className="flex items-center gap-1.5 flex-wrap">
                                                                 <span className={isCancelled ? "line-through text-red-700 dark:text-red-300 font-semibold" : "font-semibold text-slate-900 dark:text-slate-100"}>
                                                                     {toTitleCase(app.patientName)}
                                                                 </span>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-5 w-5 text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 p-0 shrink-0"
+                                                                    title="Copiar Nome do Paciente"
+                                                                    onClick={() => handleCopyPatientName(app.patientName)}
+                                                                >
+                                                                    <Copy className="h-3 w-3" />
+                                                                </Button>
                                                                 {isCancelled && (
                                                                     <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-red-100 dark:bg-red-900/60 text-red-700 dark:text-red-200 border-red-300 dark:border-red-800 font-semibold">
                                                                         CANCELADO
@@ -274,14 +309,13 @@ export default function AgendamentoPage() {
                                                                 )}
                                                             </div>
                                                             <div className="text-slate-500 text-[11px] flex items-center gap-1 mt-0.5 flex-wrap">
-                                                                <span>{formatPhone(app.patientPhone)}</span>
                                                                 {app.appointmentType === "Particular" || app.insurance?.toLowerCase() === "particular" ? (
                                                                     <span className="text-slate-600 dark:text-slate-400 font-medium">
-                                                                        • Particular{app.amount ? ` (R$ ${app.amount.replace(/^R\$\s*/i, "")})` : ""}
+                                                                        Particular{app.amount ? ` (R$ ${app.amount.replace(/^R\$\s*/i, "")})` : ""}
                                                                     </span>
                                                                 ) : (
                                                                     (app.insurance || app.plan) && (
-                                                                        <span className="text-slate-400">• {[app.insurance, app.plan].filter(Boolean).join(" - ")}</span>
+                                                                        <span className="text-slate-400">{[app.insurance, app.plan].filter(Boolean).join(" - ")}</span>
                                                                     )
                                                                 )}
                                                                 {app.fromWebsite && (
@@ -289,6 +323,22 @@ export default function AgendamentoPage() {
                                                                         Site
                                                                     </Badge>
                                                                 )}
+                                                            </div>
+                                                        </TableCell>
+
+                                                        {/* Coluna 2: Telefone */}
+                                                        <TableCell className="font-medium">
+                                                            <div className="flex items-center gap-1.5 text-slate-800 dark:text-slate-200">
+                                                                <span>{formatPhone(app.patientPhone)}</span>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-5 w-5 text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 p-0 shrink-0"
+                                                                    title="Copiar Telefone"
+                                                                    onClick={() => handleCopyPhone(app.patientPhone)}
+                                                                >
+                                                                    <Copy className="h-3 w-3" />
+                                                                </Button>
                                                             </div>
                                                         </TableCell>
                                                         <TableCell>
