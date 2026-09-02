@@ -352,7 +352,7 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
 
     return (
         <>
-            <Card className="w-full max-w-xl mx-auto shadow-sm border border-slate-200 bg-white dark:bg-slate-900">
+            <Card className="w-full max-w-3xl mx-auto shadow-sm border border-slate-200 bg-white dark:bg-slate-900">
                 <CardHeader className="pb-4">
                     <CardTitle className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                         <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
@@ -363,7 +363,7 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form onSubmit={handleSubmit} className="space-y-5">
                         {/* Toggle: Paciente veio do site? */}
                         <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
                             <div className="space-y-0.5">
@@ -378,259 +378,260 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                             />
                         </div>
 
-                        {/* Nome do Paciente */}
-                        <div className="space-y-1.5 relative">
-                            <Label htmlFor="patientName" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                                Nome do Paciente <span className="text-red-500">*</span>
-                            </Label>
-                            <div className="relative">
-                                <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                                <Input
-                                    id="patientName"
-                                    type="text"
-                                    value={patientName}
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        setPatientName(val);
-                                        setShowSuggestions(true);
-                                        const match = availablePatients.find(
-                                            (p) => p.name.toLowerCase() === val.trim().toLowerCase()
-                                        );
-                                        if (match) {
-                                            if (match.phone) setPatientPhone(formatPhone(match.phone));
-                                            if (match.insurance) setInsurance(match.insurance);
-                                            if (match.plan) setPlan(match.plan);
-                                        }
-                                    }}
-                                    onFocus={() => setShowSuggestions(true)}
-                                    onBlur={() => {
-                                        setTimeout(() => setShowSuggestions(false), 200);
-                                        if (patientName.trim()) {
+                        {/* Nome do Paciente & Telefone / WhatsApp */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Nome do Paciente */}
+                            <div className="space-y-1.5 relative">
+                                <Label htmlFor="patientName" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                    Nome do Paciente <span className="text-red-500">*</span>
+                                </Label>
+                                <div className="relative">
+                                    <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                                    <Input
+                                        id="patientName"
+                                        type="text"
+                                        value={patientName}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setPatientName(val);
+                                            setShowSuggestions(true);
                                             const match = availablePatients.find(
-                                                (p) => p.name.toLowerCase() === patientName.trim().toLowerCase()
+                                                (p) => p.name.toLowerCase() === val.trim().toLowerCase()
                                             );
                                             if (match) {
                                                 if (match.phone) setPatientPhone(formatPhone(match.phone));
                                                 if (match.insurance) setInsurance(match.insurance);
                                                 if (match.plan) setPlan(match.plan);
                                             }
-                                        }
-                                    }}
-                                    placeholder="Digite o nome do paciente..."
-                                    className="pl-9 bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100"
-                                    required
-                                    autoComplete="off"
-                                />
-                            </div>
-
-                            {/* Autocomplete Suggestions Dropdown */}
-                            {showSuggestions && filteredPatients.length > 0 && (
-                                <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-48 overflow-y-auto py-1">
-                                    {filteredPatients.map((p) => (
-                                        <button
-                                            key={p.id}
-                                            type="button"
-                                            className="w-full text-left px-3 py-2 text-xs hover:bg-blue-50 dark:hover:bg-slate-700 flex justify-between items-center transition-colors cursor-pointer border-b last:border-0 border-slate-100 dark:border-slate-700/50"
-                                            onMouseDown={(e) => {
-                                                e.preventDefault();
-                                                setPatientName(p.name);
-                                                if (p.phone) setPatientPhone(formatPhone(p.phone));
-                                                if (p.insurance) setInsurance(p.insurance);
-                                                if (p.plan) setPlan(p.plan);
-                                                setShowSuggestions(false);
-                                            }}
-                                        >
-                                            <span className="font-semibold text-slate-800 dark:text-slate-200">{toTitleCase(p.name)}</span>
-                                            <span className="text-slate-400 text-[11px]">{formatPhone(p.phone)}</span>
-                                        </button>
-                                    ))}
+                                        }}
+                                        onFocus={() => setShowSuggestions(true)}
+                                        onBlur={() => {
+                                            setTimeout(() => setShowSuggestions(false), 200);
+                                            if (patientName.trim()) {
+                                                const match = availablePatients.find(
+                                                    (p) => p.name.toLowerCase() === patientName.trim().toLowerCase()
+                                                );
+                                                if (match) {
+                                                    if (match.phone) setPatientPhone(formatPhone(match.phone));
+                                                    if (match.insurance) setInsurance(match.insurance);
+                                                    if (match.plan) setPlan(match.plan);
+                                                }
+                                            }
+                                        }}
+                                        placeholder="Digite o nome do paciente..."
+                                        className="pl-9 bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100"
+                                        required
+                                        autoComplete="off"
+                                    />
                                 </div>
-                            )}
-                        </div>
 
-                        {/* Telefone / WhatsApp */}
-                        <div className="space-y-1.5">
-                            <Label htmlFor="patientPhone" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                                Telefone / WhatsApp <span className="text-red-500">*</span>
-                            </Label>
-                            <div className="relative">
-                                <Phone className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                                <Input
-                                    id="patientPhone"
-                                    type="text"
-                                    value={patientPhone}
-                                    onChange={handlePhoneChange}
-                                    placeholder="(31) 98765-4321"
-                                    className="pl-9 bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100"
-                                    required
-                                />
+                                {/* Autocomplete Suggestions Dropdown */}
+                                {showSuggestions && filteredPatients.length > 0 && (
+                                    <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-48 overflow-y-auto py-1">
+                                        {filteredPatients.map((p) => (
+                                            <button
+                                                key={p.id}
+                                                type="button"
+                                                className="w-full text-left px-3 py-2 text-xs hover:bg-blue-50 dark:hover:bg-slate-700 flex justify-between items-center transition-colors cursor-pointer border-b last:border-0 border-slate-100 dark:border-slate-700/50"
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault();
+                                                    setPatientName(p.name);
+                                                    if (p.phone) setPatientPhone(formatPhone(p.phone));
+                                                    if (p.insurance) setInsurance(p.insurance);
+                                                    if (p.plan) setPlan(p.plan);
+                                                    setShowSuggestions(false);
+                                                }}
+                                            >
+                                                <span className="font-semibold text-slate-800 dark:text-slate-200">{toTitleCase(p.name)}</span>
+                                                <span className="text-slate-400 text-[11px]">{formatPhone(p.phone)}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Telefone / WhatsApp */}
+                            <div className="space-y-1.5">
+                                <Label htmlFor="patientPhone" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                    Telefone / WhatsApp <span className="text-red-500">*</span>
+                                </Label>
+                                <div className="relative">
+                                    <Phone className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                                    <Input
+                                        id="patientPhone"
+                                        type="text"
+                                        value={patientPhone}
+                                        onChange={handlePhoneChange}
+                                        placeholder="(31) 98765-4321"
+                                        className="pl-9 bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100"
+                                        required
+                                    />
+                                </div>
                             </div>
                         </div>
 
-                        {/* Tipo de Consulta (Convênio vs Particular) */}
-                        <div className="space-y-1.5">
-                            <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                                Tipo de Consulta <span className="text-red-500">*</span>
-                            </Label>
-                            <div className="grid grid-cols-2 gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setAppointmentType("Convênio");
-                                        if (insurance === "Particular") setInsurance("");
-                                    }}
-                                    className={`py-2 px-4 rounded-xl text-sm font-semibold border transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                                        appointmentType === "Convênio"
-                                            ? "bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-950/60 dark:border-blue-500 dark:text-blue-300 shadow-xs"
-                                            : "bg-slate-50/50 border-slate-200 text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400"
-                                    }`}
-                                >
-                                    <span>🏥</span> Convênio
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setAppointmentType("Particular");
-                                        setInsurance("Particular");
-                                        setPlan("");
-                                    }}
-                                    className={`py-2 px-4 rounded-xl text-sm font-semibold border transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                                        appointmentType === "Particular"
-                                            ? "bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-950/60 dark:border-blue-500 dark:text-blue-300 shadow-xs"
-                                            : "bg-slate-50/50 border-slate-200 text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400"
-                                    }`}
-                                >
-                                    <span>💵</span> Particular
-                                </button>
+                        {/* Tipo de Consulta & Detalhes (Convênio / Plano / Valor) */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
+                            {/* Tipo de Consulta (Convênio vs Particular) */}
+                            <div className="space-y-1.5">
+                                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                    Tipo de Consulta <span className="text-red-500">*</span>
+                                </Label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setAppointmentType("Convênio");
+                                            if (insurance === "Particular") setInsurance("");
+                                        }}
+                                        className={`py-2 px-3 rounded-xl text-sm font-semibold border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                            appointmentType === "Convênio"
+                                                ? "bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-950/60 dark:border-blue-500 dark:text-blue-300 shadow-xs"
+                                                : "bg-slate-50/50 border-slate-200 text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400"
+                                        }`}
+                                    >
+                                        <span>🏥</span> Convênio
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setAppointmentType("Particular");
+                                            setInsurance("Particular");
+                                            setPlan("");
+                                        }}
+                                        className={`py-2 px-3 rounded-xl text-sm font-semibold border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                            appointmentType === "Particular"
+                                                ? "bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-950/60 dark:border-blue-500 dark:text-blue-300 shadow-xs"
+                                                : "bg-slate-50/50 border-slate-200 text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400"
+                                        }`}
+                                    >
+                                        <span>💵</span> Particular
+                                    </button>
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Exibição Condicional: Convênio & Plano vs Valor da Consulta */}
-                        {appointmentType === "Convênio" ? (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="insurance" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                                        Convênio
-                                    </Label>
-                                    <div className="relative">
-                                        <FileText className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                            {/* Exibição Condicional: Convênio & Plano vs Valor da Consulta */}
+                            {appointmentType === "Convênio" ? (
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="insurance" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                            Convênio
+                                        </Label>
                                         <Input
                                             id="insurance"
                                             type="text"
                                             value={insurance}
                                             onChange={(e) => setInsurance(e.target.value)}
                                             placeholder="Ex: Unimed"
-                                            className="pl-9 bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100"
+                                            className="bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100"
                                         />
                                     </div>
-                                </div>
 
-                                <div className="space-y-1.5">
-                                    <Label htmlFor="plan" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                                        Plano
-                                    </Label>
-                                    <div className="relative">
-                                        <FileText className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="plan" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                            Plano
+                                        </Label>
                                         <Input
                                             id="plan"
                                             type="text"
                                             value={plan}
                                             onChange={(e) => setPlan(e.target.value)}
-                                            placeholder="Ex: Especial / Unifácil"
+                                            placeholder="Ex: Especial"
+                                            className="bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100"
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="amount" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                        Valor da Consulta (R$) <span className="text-red-500">*</span>
+                                    </Label>
+                                    <div className="relative">
+                                        <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                                        <Input
+                                            id="amount"
+                                            type="text"
+                                            value={amount}
+                                            onChange={(e) => setAmount(e.target.value)}
+                                            placeholder="Ex: 350,00"
+                                            required={appointmentType === "Particular"}
                                             className="pl-9 bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100"
                                         />
                                     </div>
                                 </div>
-                            </div>
-                        ) : (
+                            )}
+                        </div>
+
+                        {/* Médico & Especialidade (Automático) */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Médico */}
                             <div className="space-y-1.5">
-                                <Label htmlFor="amount" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                                    Valor da Consulta (R$) <span className="text-red-500">*</span>
+                                <Label htmlFor="doctorName" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                    Médico <span className="text-red-500">*</span>
+                                </Label>
+                                <Select value={doctorName} onValueChange={setDoctorName}>
+                                    <SelectTrigger className="bg-slate-50/50 dark:bg-slate-800 border-slate-200 text-slate-900 dark:text-slate-100">
+                                        <SelectValue placeholder="Selecione o médico" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {doctorOptions.map((doc) => (
+                                            <SelectItem key={doc} value={doc}>
+                                                {doc}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {/* Especialidade (Automático) */}
+                            <div className="space-y-1.5">
+                                <Label htmlFor="specialty" className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                                    Especialidade (Automático)
+                                </Label>
+                                <Input
+                                    id="specialty"
+                                    type="text"
+                                    value={mappedSpecialty}
+                                    disabled
+                                    className="bg-slate-100 dark:bg-slate-800/60 border-slate-200 text-slate-500 dark:text-slate-400 cursor-not-allowed font-normal"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Data & Horário */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Data */}
+                            <div className="space-y-1.5">
+                                <Label htmlFor="appointmentDate" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                    Data (Clique no Calendário 🗓️) <span className="text-red-500">*</span>
                                 </Label>
                                 <div className="relative">
-                                    <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                                     <Input
-                                        id="amount"
-                                        type="text"
-                                        value={amount}
-                                        onChange={(e) => setAmount(e.target.value)}
-                                        placeholder="Ex: 350,00"
-                                        required={appointmentType === "Particular"}
-                                        className="pl-9 bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100"
+                                        id="appointmentDate"
+                                        type="date"
+                                        value={appointmentDate}
+                                        onChange={(e) => setAppointmentDate(e.target.value)}
+                                        className="bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100 pr-10"
+                                        required
                                     />
                                 </div>
-                                {appointmentType === "Particular" && !amount.trim() && (
-                                    <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
-                                        * Informe o valor da consulta para habilitar o agendamento.
-                                    </p>
-                                )}
                             </div>
-                        )}
 
-                        {/* Médico */}
-                        <div className="space-y-1.5">
-                            <Label htmlFor="doctorName" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                                Médico <span className="text-red-500">*</span>
-                            </Label>
-                            <Select value={doctorName} onValueChange={setDoctorName}>
-                                <SelectTrigger className="bg-slate-50/50 dark:bg-slate-800 border-slate-200 text-slate-900 dark:text-slate-100">
-                                    <SelectValue placeholder="Selecione o médico" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {doctorOptions.map((doc) => (
-                                        <SelectItem key={doc} value={doc}>
-                                            {doc}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {/* Especialidade (Automático) */}
-                        <div className="space-y-1.5">
-                            <Label htmlFor="specialty" className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                                Especialidade (Automático)
-                            </Label>
-                            <Input
-                                id="specialty"
-                                type="text"
-                                value={mappedSpecialty}
-                                disabled
-                                className="bg-slate-100 dark:bg-slate-800/60 border-slate-200 text-slate-500 dark:text-slate-400 cursor-not-allowed font-normal"
-                            />
-                        </div>
-
-                        {/* Data */}
-                        <div className="space-y-1.5">
-                            <Label htmlFor="appointmentDate" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                                Data (Clique no Calendário 🗓️) <span className="text-red-500">*</span>
-                            </Label>
-                            <div className="relative">
-                                <Input
-                                    id="appointmentDate"
-                                    type="date"
-                                    value={appointmentDate}
-                                    onChange={(e) => setAppointmentDate(e.target.value)}
-                                    className="bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100 pr-10"
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        {/* Horário */}
-                        <div className="space-y-1.5">
-                            <Label htmlFor="appointmentTime" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                                Horário <span className="text-red-500">*</span>
-                            </Label>
-                            <div className="relative">
-                                <Input
-                                    id="appointmentTime"
-                                    type="time"
-                                    value={appointmentTime}
-                                    onChange={(e) => setAppointmentTime(e.target.value)}
-                                    className="bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100 pr-10"
-                                    required
-                                />
+                            {/* Horário */}
+                            <div className="space-y-1.5">
+                                <Label htmlFor="appointmentTime" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                    Horário <span className="text-red-500">*</span>
+                                </Label>
+                                <div className="relative">
+                                    <Input
+                                        id="appointmentTime"
+                                        type="time"
+                                        value={appointmentTime}
+                                        onChange={(e) => setAppointmentTime(e.target.value)}
+                                        className="bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100 pr-10"
+                                        required
+                                    />
+                                </div>
                             </div>
                         </div>
 
