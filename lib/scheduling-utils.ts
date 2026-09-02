@@ -53,10 +53,11 @@ export function formatFullExtendedDate(dateStr: string, timeStr: string): string
         const [year, month, day] = dateStr.split("-").map(Number);
         const dateObj = new Date(year, month - 1, day);
 
-        const dateFormatted = format(dateObj, "dd/MM/yyyy");
-        const rawWeekDay = format(dateObj, "EEEE", { locale: ptBR }).toLowerCase();
+        const dateFormatted = format(dateObj, "d 'de' MMMM 'de' yyyy", { locale: ptBR });
+        const rawWeekDay = format(dateObj, "EEEE", { locale: ptBR });
+        const weekDayFormatted = capitalizeWeekDay(rawWeekDay);
 
-        return `${dateFormatted}, ${rawWeekDay}, às ${timeStr}`;
+        return `${dateFormatted}, ${weekDayFormatted}, às ${timeStr}`;
     } catch {
         return `${dateStr} às ${timeStr}`;
     }
@@ -94,7 +95,7 @@ export function buildWhatsAppMessage(params: {
 
     const message = `✅ Consulta Agendada com Sucesso!
 
-Olá, ${formattedPatientName}! Seguem os detalhes do seu agendamento:
+Olá! Seguem os detalhes do seu atendimento:
 
 👤 Paciente: ${formattedPatientName}
 ${doctorLabel}: ${doctorName}
