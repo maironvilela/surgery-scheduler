@@ -22,6 +22,7 @@ export async function createAppointment(data: Omit<Appointment, "id" | "createdA
                 locationName: data.locationName,
                 locationAddress: data.locationAddress,
                 fromWebsite: data.fromWebsite,
+                ...(data.patientSource ? { patientSource: data.patientSource } : {}),
                 whatsappMessage: data.whatsappMessage,
                 whatsappSent: data.whatsappSent,
                 status: data.status || "AGENDADO",

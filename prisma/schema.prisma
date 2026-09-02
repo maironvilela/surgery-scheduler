@@ -178,6 +178,7 @@ model Appointment {
   locationName       String   @map("location_name")
   locationAddress    String   @map("location_address")
   fromWebsite        Boolean  @default(false) @map("from_website")
+  patientSource      String?  @map("patient_source")
   whatsappMessage    String   @map("whatsapp_message")
   whatsappSent       Boolean  @default(false) @map("whatsapp_sent")
   status             String   @default("AGENDADO")

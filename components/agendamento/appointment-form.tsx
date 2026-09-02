@@ -68,6 +68,7 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
     const [appointmentTime, setAppointmentTime] = useState("09:00");
     const [locationName, setLocationName] = useState("Clínica CEOT");
     const [fromWebsite, setFromWebsite] = useState(false);
+    const [patientSource, setPatientSource] = useState<string>("Direto");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Modal Confirmation State
@@ -253,8 +254,13 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                 }
             }
 
-            const createdByUser = fromWebsite
+            const isWebsite = patientSource === "Site" || fromWebsite;
+            const createdByUser = isWebsite
                 ? "Site"
+                : patientSource === "Doctoralia"
+                ? "Doctoralia"
+                : patientSource === "Instagram"
+                ? "Instagram"
                 : (session?.user?.name || session?.user?.email || "Usuário do Sistema");
 
             const newAppointment = await createAppointment({
@@ -271,7 +277,8 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                 fullDatetimeString,
                 locationName,
                 locationAddress: mappedAddress,
-                fromWebsite,
+                fromWebsite: isWebsite,
+                patientSource: patientSource || (isWebsite ? "Site" : "Direto"),
                 whatsappMessage: message,
                 whatsappSent: sendWhatsApp,
                 status: "AGENDADO",
@@ -365,18 +372,69 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-5">
-                        {/* Toggle: Paciente veio do site? */}
-                        <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
-                            <div className="space-y-0.5">
-                                <Label htmlFor="fromWebsite" className="text-sm font-semibold text-slate-800 dark:text-slate-200 cursor-pointer">
-                                    Paciente veio do site?
-                                </Label>
+                        {/* Origem do Agendamento / Paciente */}
+                        <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 space-y-2">
+                            <Label className="text-sm font-semibold text-slate-800 dark:text-slate-200 block">
+                                Origem do Agendamento / Paciente
+                            </Label>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setPatientSource("Direto");
+                                        setFromWebsite(false);
+                                    }}
+                                    className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                        patientSource === "Direto" || !patientSource
+                                            ? "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 shadow-xs"
+                                            : "bg-transparent border-transparent text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                    }`}
+                                >
+                                    <span>👤</span> Direto
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setPatientSource("Site");
+                                        setFromWebsite(true);
+                                    }}
+                                    className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                        patientSource === "Site" || fromWebsite
+                                            ? "bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-950/60 dark:border-blue-500 dark:text-blue-300 shadow-xs font-bold"
+                                            : "bg-transparent border-transparent text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                    }`}
+                                >
+                                    <span>🌐</span> Veio do Site
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setPatientSource("Doctoralia");
+                                        setFromWebsite(false);
+                                    }}
+                                    className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                        patientSource === "Doctoralia"
+                                            ? "bg-teal-50 border-teal-500 text-teal-700 dark:bg-teal-950/60 dark:border-teal-500 dark:text-teal-300 shadow-xs font-bold"
+                                            : "bg-transparent border-transparent text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                    }`}
+                                >
+                                    <span>🩺</span> Doctoralia
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setPatientSource("Instagram");
+                                        setFromWebsite(false);
+                                    }}
+                                    className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                        patientSource === "Instagram"
+                                            ? "bg-pink-50 border-pink-500 text-pink-700 dark:bg-pink-950/60 dark:border-pink-500 dark:text-pink-300 shadow-xs font-bold"
+                                            : "bg-transparent border-transparent text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                    }`}
+                                >
+                                    <span>📸</span> Instagram
+                                </button>
                             </div>
-                            <Switch
-                                id="fromWebsite"
-                                checked={fromWebsite}
-                                onChange={(e) => setFromWebsite(e.target.checked)}
-                            />
                         </div>
 
                         {/* Nome do Paciente & Telefone / WhatsApp */}

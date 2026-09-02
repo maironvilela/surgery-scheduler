@@ -318,11 +318,19 @@ export default function AgendamentoPage() {
                                                                         <span className="text-slate-400">{[app.insurance, app.plan].filter(Boolean).join(" - ")}</span>
                                                                     )
                                                                 )}
-                                                                {app.fromWebsite && (
-                                                                    <Badge variant="outline" className="text-[10px] px-1 py-0 bg-amber-50 text-amber-700 border-amber-200">
+                                                                {app.patientSource === "Doctoralia" ? (
+                                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-teal-50 text-teal-700 border-teal-200 font-semibold">
+                                                                        Doctoralia
+                                                                    </Badge>
+                                                                ) : app.patientSource === "Instagram" ? (
+                                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-pink-50 text-pink-700 border-pink-200 font-semibold">
+                                                                        Instagram
+                                                                    </Badge>
+                                                                ) : (app.fromWebsite || app.patientSource === "Site") ? (
+                                                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-amber-50 text-amber-700 border-amber-200 font-semibold">
                                                                         Site
                                                                     </Badge>
-                                                                )}
+                                                                ) : null}
                                                             </div>
                                                         </TableCell>
 
@@ -359,7 +367,7 @@ export default function AgendamentoPage() {
                                                         <TableCell>
                                                             <div className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                                                                 <UserCheck className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                                                                <span>{app.createdBy || (app.fromWebsite ? "Site" : "Usuário do Sistema")}</span>
+                                                                <span>{app.createdBy || app.patientSource || (app.fromWebsite ? "Site" : "Usuário do Sistema")}</span>
                                                             </div>
                                                         </TableCell>
 

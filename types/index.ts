@@ -154,6 +154,7 @@ export interface Appointment {
     locationName: string;
     locationAddress: string;
     fromWebsite: boolean;
+    patientSource?: string;
     whatsappMessage: string;
     whatsappSent: boolean;
     status: 'AGENDADO' | 'CANCELADO' | string;
