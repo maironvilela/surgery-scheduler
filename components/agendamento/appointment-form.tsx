@@ -68,7 +68,7 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
     const [appointmentTime, setAppointmentTime] = useState("09:00");
     const [locationName, setLocationName] = useState("Clínica CEOT");
     const [fromWebsite, setFromWebsite] = useState(false);
-    const [patientSource, setPatientSource] = useState<string>("Direto");
+    const [patientSource, setPatientSource] = useState<string>("Paciente");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Modal Confirmation State
@@ -278,7 +278,7 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                 locationName,
                 locationAddress: mappedAddress,
                 fromWebsite: isWebsite,
-                patientSource: patientSource || (isWebsite ? "Site" : "Direto"),
+                patientSource: patientSource || (isWebsite ? "Site" : "Paciente"),
                 whatsappMessage: message,
                 whatsappSent: sendWhatsApp,
                 status: "AGENDADO",
@@ -381,16 +381,16 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                                 <button
                                     type="button"
                                     onClick={() => {
-                                        setPatientSource("Direto");
+                                        setPatientSource("Paciente");
                                         setFromWebsite(false);
                                     }}
                                     className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                                        patientSource === "Direto" || !patientSource
-                                            ? "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 shadow-xs"
+                                        patientSource === "Paciente" || !patientSource
+                                            ? "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 shadow-xs font-bold"
                                             : "bg-transparent border-transparent text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                                     }`}
                                 >
-                                    <span>👤</span> Direto
+                                    <span>👤</span> Paciente
                                 </button>
                                 <button
                                     type="button"
