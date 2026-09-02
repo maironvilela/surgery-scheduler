@@ -1237,7 +1237,7 @@ Posso confirmar sua presença?`;
                                                         <TableCell className="font-medium">{patient.time}</TableCell>
                                                         <TableCell>
                                                             <div className="flex flex-col">
-                                                                <span>{patient.patientName}</span>
+                                                                <span>{toTitleCase(patient.patientName)}</span>
                                                                 <span className="text-xs text-muted-foreground">{formatPhone(patient.phone || "")}</span>
                                                             </div>
                                                         </TableCell>

@@ -31,7 +31,7 @@ export async function addConsultation(data: Omit<ConsultationItem, "id">) {
     try {
         const consultation = await prisma.consultation.create({
             data: {
-                patientName: data.patientName,
+                patientName: data.patientName.trim().toUpperCase(),
                 phone: data.phone,
                 status: data.status,
                 time: data.time,
@@ -63,7 +63,7 @@ export async function updateConsultation(id: string, data: Partial<Omit<Consulta
         const consultation = await prisma.consultation.update({
             where: { id },
             data: {
-                patientName: data.patientName,
+                ...(data.patientName ? { patientName: data.patientName.trim().toUpperCase() } : {}),
                 phone: data.phone,
                 status: data.status,
                 time: data.time,

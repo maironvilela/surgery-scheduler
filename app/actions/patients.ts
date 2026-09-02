@@ -36,7 +36,7 @@ export async function addPatient(data: Omit<Patient, "id" | "createdAt">) {
     try {
         const patient = await prisma.patient.create({
             data: {
-                name: data.name,
+                name: data.name.trim().toUpperCase(),
                 insurance: data.insurance,
                 plan: data.plan,
                 birthDate: data.birthDate,
@@ -65,7 +65,7 @@ export async function updatePatient(id: string, data: Omit<Patient, "id" | "crea
         const patient = await prisma.patient.update({
             where: { id },
             data: {
-                name: data.name,
+                name: data.name.trim().toUpperCase(),
                 insurance: data.insurance,
                 plan: data.plan,
                 birthDate: data.birthDate,

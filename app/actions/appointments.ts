@@ -8,10 +8,12 @@ export async function createAppointment(data: Omit<Appointment, "id" | "createdA
     try {
         const appointment = await (prisma as any).appointment.create({
             data: {
-                patientName: data.patientName,
+                patientName: data.patientName.trim().toUpperCase(),
                 patientPhone: data.patientPhone,
                 ...(data.insurance ? { insurance: data.insurance } : {}),
                 ...(data.plan ? { plan: data.plan } : {}),
+                ...(data.appointmentType ? { appointmentType: data.appointmentType } : {}),
+                ...(data.amount ? { amount: data.amount } : {}),
                 doctorName: data.doctorName,
                 specialty: data.specialty,
                 appointmentDate: data.appointmentDate,

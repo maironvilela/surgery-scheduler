@@ -144,6 +144,8 @@ export interface Appointment {
     patientPhone: string;
     insurance?: string;
     plan?: string;
+    appointmentType?: string;
+    amount?: string;
     doctorName: string;
     specialty: string;
     appointmentDate: string;

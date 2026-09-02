@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { MessageSquare, Copy, Trash2, Calendar, Search, RefreshCw, UserCheck, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { buildWhatsAppDeepLink } from "@/lib/scheduling-utils";
-import { formatPhone } from "@/lib/utils";
+import { formatPhone, toTitleCase } from "@/lib/utils";
 
 import { useSession } from "next-auth/react";
 
@@ -237,7 +237,7 @@ export default function AgendamentoPage() {
                                                         <TableCell className="font-medium">
                                                             <div className="flex items-center gap-2">
                                                                 <span className={isCancelled ? "line-through text-red-700 dark:text-red-300 font-semibold" : "font-semibold text-slate-900 dark:text-slate-100"}>
-                                                                    {app.patientName}
+                                                                    {toTitleCase(app.patientName)}
                                                                 </span>
                                                                 {isCancelled && (
                                                                     <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-red-100 dark:bg-red-900/60 text-red-700 dark:text-red-200 border-red-300 dark:border-red-800 font-semibold">
@@ -247,8 +247,14 @@ export default function AgendamentoPage() {
                                                             </div>
                                                             <div className="text-slate-500 text-[11px] flex items-center gap-1 mt-0.5 flex-wrap">
                                                                 <span>{formatPhone(app.patientPhone)}</span>
-                                                                {(app.insurance || app.plan) && (
-                                                                    <span className="text-slate-400">• {[app.insurance, app.plan].filter(Boolean).join(" - ")}</span>
+                                                                {app.appointmentType === "Particular" || app.insurance?.toLowerCase() === "particular" ? (
+                                                                    <span className="text-slate-600 dark:text-slate-400 font-medium">
+                                                                        • Particular{app.amount ? ` (R$ ${app.amount.replace(/^R\$\s*/i, "")})` : ""}
+                                                                    </span>
+                                                                ) : (
+                                                                    (app.insurance || app.plan) && (
+                                                                        <span className="text-slate-400">• {[app.insurance, app.plan].filter(Boolean).join(" - ")}</span>
+                                                                    )
                                                                 )}
                                                                 {app.fromWebsite && (
                                                                     <Badge variant="outline" className="text-[10px] px-1 py-0 bg-amber-50 text-amber-700 border-amber-200">

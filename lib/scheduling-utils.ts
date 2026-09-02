@@ -1,6 +1,7 @@
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DOCTORS_MAPPING, LOCATIONS_MAPPING } from "./constants/scheduling";
+import { toTitleCase } from "./utils";
 
 /**
  * Sanitizes phone numbers by removing non-digits and ensuring 55 country code.
@@ -52,11 +53,10 @@ export function formatFullExtendedDate(dateStr: string, timeStr: string): string
         const [year, month, day] = dateStr.split("-").map(Number);
         const dateObj = new Date(year, month - 1, day);
 
-        const dayAndMonthYear = format(dateObj, "d 'de' MMMM 'de' yyyy", { locale: ptBR });
-        const rawWeekDay = format(dateObj, "EEEE", { locale: ptBR });
-        const weekDayFormatted = capitalizeWeekDay(rawWeekDay);
+        const dateFormatted = format(dateObj, "dd/MM/yyyy");
+        const rawWeekDay = format(dateObj, "EEEE", { locale: ptBR }).toLowerCase();
 
-        return `${dayAndMonthYear}, ${weekDayFormatted}, às ${timeStr}`;
+        return `${dateFormatted}, ${rawWeekDay}, às ${timeStr}`;
     } catch {
         return `${dateStr} às ${timeStr}`;
     }
@@ -73,8 +73,10 @@ export function buildWhatsAppMessage(params: {
     timeStr: string;
     locationName: string;
     locationAddress: string;
+    appointmentType?: string;
+    amount?: string;
 }): { fullDatetimeString: string; message: string } {
-    const { patientName, doctorName, specialty, dateStr, timeStr, locationName, locationAddress } = params;
+    const { patientName, doctorName, specialty, dateStr, timeStr, locationName, locationAddress, appointmentType, amount } = params;
 
     // Check doctor treatment (⚕️ Médico vs ⚕️ Médica)
     const doctorObj = DOCTORS_MAPPING.find((d) => d.name === doctorName);
@@ -82,17 +84,25 @@ export function buildWhatsAppMessage(params: {
 
     const fullDatetimeString = formatFullExtendedDate(dateStr, timeStr);
 
+    let amountLine = "";
+    if (appointmentType === "Particular" && amount && amount.trim() !== "") {
+        const cleanVal = amount.trim().replace(/^R\$\s*/i, "");
+        amountLine = `\n💰 Valor da Consulta: R$ ${cleanVal}`;
+    }
+
+    const formattedPatientName = toTitleCase(patientName);
+
     const message = `✅ Consulta Agendada com Sucesso!
 
-Olá, ${patientName}! Seguem os detalhes do seu atendimento:
+Olá, ${formattedPatientName}! Seguem os detalhes do seu agendamento:
 
-👤 Paciente: ${patientName}
+👤 Paciente: ${formattedPatientName}
 ${doctorLabel}: ${doctorName}
 🩺 Especialidade: ${specialty}
 
-📅 Data e Horário: ${fullDatetimeString}
+📅 Data: ${fullDatetimeString}
 🏥 Local: ${locationName}
-📍 Endereço: ${locationAddress}
+📍 Endereço: ${locationAddress}${amountLine}
 
 Ficamos muito felizes em poder cuidar de você! Qualquer dúvida sobre o trajeto ou documentação, estamos à disposição por aqui. 💙😊`;
 

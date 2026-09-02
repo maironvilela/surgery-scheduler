@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { User, Phone, MapPin } from "lucide-react";
 import Link from "next/link";
+import { toTitleCase } from "@/lib/utils";
 
 interface PatientListProps {
     patients: Patient[];
@@ -46,7 +47,7 @@ export function PatientList({ patients }: PatientListProps) {
                             <div className="p-4 space-y-4">
                                 <div className="flex justify-between items-start">
                                     <div>
-                                        <h3 className="font-semibold text-lg">{patient.name}</h3>
+                                        <h3 className="font-semibold text-lg">{toTitleCase(patient.name)}</h3>
                                         <div className="flex items-center text-sm text-muted-foreground mt-1">
                                             {patient.insurance} - {patient.plan}
                                         </div>

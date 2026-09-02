@@ -168,6 +168,8 @@ model Appointment {
   patientPhone       String   @map("patient_phone")
   insurance          String?  @map("insurance")
   plan               String?  @map("plan")
+  appointmentType    String?  @default("Convênio") @map("appointment_type")
+  amount             String?  @map("amount")
   doctorName         String   @map("doctor_name")
   specialty          String
   appointmentDate    String   @map("appointment_date")

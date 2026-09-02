@@ -1,17 +1,25 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import { Calendar as CalendarIcon, Clock, MapPin, Copy, ExternalLink, Check, Loader2, FileText, Phone, User } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Calendar as CalendarIcon, Clock, MapPin, Copy, ExternalLink, Check, Loader2, FileText, Phone, User, DollarSign, Send, Save, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from "@/components/ui/dialog";
 import { DOCTORS_MAPPING, LOCATIONS_MAPPING } from "@/lib/constants/scheduling";
 import { buildWhatsAppMessage, buildWhatsAppDeepLink, sanitizePhoneNumber, formatFullExtendedDate } from "@/lib/scheduling-utils";
 import { createAppointment } from "@/app/actions/appointments";
-import { formatPhone } from "@/lib/utils";
+import { formatPhone, toTitleCase } from "@/lib/utils";
 import { toast } from "sonner";
 import { useDoctors } from "@/context/doctor-context";
 import { usePatients } from "@/context/patient-context";
@@ -22,11 +30,20 @@ interface AppointmentFormProps {
     onAppointmentCreated?: (appointment: Appointment) => void;
 }
 
+interface PendingAppointment {
+    trimmedPatientName: string;
+    cleanPhone: string;
+    finalInsurance: string;
+    finalPlan: string;
+    finalAmount: string;
+    fullDatetimeString: string;
+    message: string;
+}
+
 export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) {
     const { data: session } = useSession();
     const { doctors: dbDoctors } = useDoctors();
     const { patients: availablePatients, addPatient } = usePatients();
-
 
     // Default today's date formatted as YYYY-MM-DD
     const todayStr = useMemo(() => {
@@ -40,16 +57,22 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
     // Form States
     const [patientName, setPatientName] = useState("");
     const [patientPhone, setPatientPhone] = useState("");
+    const [appointmentType, setAppointmentType] = useState<"Convênio" | "Particular">("Convênio");
     const [insurance, setInsurance] = useState("");
     const [plan, setPlan] = useState("");
+    const [amount, setAmount] = useState("");
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [doctorName, setDoctorName] = useState("Dr. Jader de Andrade");
     const [appointmentDate, setAppointmentDate] = useState(todayStr);
     const [appointmentTime, setAppointmentTime] = useState("09:00");
     const [locationName, setLocationName] = useState("Clínica CEOT");
     const [fromWebsite, setFromWebsite] = useState(false);
-    const [dontSendWhatsApp, setDontSendWhatsApp] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Modal Confirmation State
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [pendingAppointment, setPendingAppointment] = useState<PendingAppointment | null>(null);
+    const [copiedMessage, setCopiedMessage] = useState(false);
 
     // Live search filtered patients from DB (minimum 3 characters)
     const filteredPatients = useMemo(() => {
@@ -60,7 +83,6 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
             .slice(0, 6);
     }, [patientName, availablePatients]);
 
-
     // Doctor options loaded directly from Doctor database table
     const doctorOptions = useMemo(() => {
         if (dbDoctors && dbDoctors.length > 0) {
@@ -68,8 +90,6 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
         }
         return DOCTORS_MAPPING.map((d) => d.name);
     }, [dbDoctors]);
-
-
 
     // Automatic Specialty Mapping
     const mappedSpecialty = useMemo(() => {
@@ -101,8 +121,8 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
         setPatientPhone(formatPhone(val));
     };
 
-    // Form Submit Handler
-    const handleSubmit = async (e: React.FormEvent) => {
+    // Step 1: Form Validation & Open Confirmation Modal
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!patientName.trim()) {
@@ -136,11 +156,75 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
             return;
         }
 
+        if (appointmentType === "Particular" && !amount.trim()) {
+            toast.error("Por favor, informe o valor da consulta particular.");
+            return;
+        }
+
+        const trimmedPatientName = patientName.trim();
+        const finalInsurance = appointmentType === "Particular" ? "Particular" : insurance;
+        const finalPlan = appointmentType === "Particular" ? "" : plan;
+        const finalAmount = appointmentType === "Particular" ? amount : "";
+
+        // Build WhatsApp message text
+        const { fullDatetimeString, message } = buildWhatsAppMessage({
+            patientName: trimmedPatientName,
+            doctorName,
+            specialty: mappedSpecialty,
+            dateStr: appointmentDate,
+            timeStr: appointmentTime,
+            locationName,
+            locationAddress: mappedAddress,
+            appointmentType,
+            amount: finalAmount,
+        });
+
+        setPendingAppointment({
+            trimmedPatientName,
+            cleanPhone: clean,
+            finalInsurance,
+            finalPlan,
+            finalAmount,
+            fullDatetimeString,
+            message,
+        });
+        setCopiedMessage(false);
+        setIsConfirmModalOpen(true);
+    };
+
+    // Copy message inside modal
+    const handleCopyModalMessage = async () => {
+        if (!pendingAppointment?.message) return;
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(pendingAppointment.message);
+                setCopiedMessage(true);
+                toast.success("Mensagem copiada para a área de transferência!");
+                setTimeout(() => setCopiedMessage(false), 3000);
+            }
+        } catch (err) {
+            toast.error("Erro ao copiar mensagem.");
+        }
+    };
+
+    // Step 2: Execute Save (With or Without sending message)
+    const handleSaveAppointment = async (sendWhatsApp: boolean) => {
+        if (!pendingAppointment) return;
+
         setIsSubmitting(true);
 
         try {
-            // 0. Auto-register patient if not already registered in patients table
-            const trimmedPatientName = patientName.trim();
+            const {
+                trimmedPatientName,
+                cleanPhone,
+                finalInsurance,
+                finalPlan,
+                finalAmount,
+                fullDatetimeString,
+                message,
+            } = pendingAppointment;
+
+            // Auto-register patient if not existing
             const existingPatient = availablePatients.find(
                 (p) => p.name.toLowerCase().trim() === trimmedPatientName.toLowerCase()
             );
@@ -149,10 +233,10 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                 try {
                     await addPatient({
                         name: trimmedPatientName,
-                        phone: clean,
+                        phone: cleanPhone,
                         gender: "other",
-                        insurance: insurance || "Particular",
-                        plan: plan || "",
+                        insurance: finalInsurance || "Particular",
+                        plan: finalPlan || "",
                         birthDate: "",
                         cep: "",
                         street: "",
@@ -168,29 +252,17 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                 }
             }
 
-            // 1. Build WhatsApp message text
-            const { fullDatetimeString, message } = buildWhatsAppMessage({
-                patientName: trimmedPatientName,
-                doctorName,
-                specialty: mappedSpecialty,
-                dateStr: appointmentDate,
-                timeStr: appointmentTime,
-                locationName,
-                locationAddress: mappedAddress,
-            });
-
-
-            // Save appointment to DB via Server Action
             const createdByUser = fromWebsite
                 ? "Site"
                 : (session?.user?.name || session?.user?.email || "Usuário do Sistema");
 
-
             const newAppointment = await createAppointment({
                 patientName: trimmedPatientName,
-                patientPhone: clean,
-                insurance,
-                plan,
+                patientPhone: cleanPhone,
+                insurance: finalInsurance,
+                plan: finalPlan,
+                appointmentType,
+                amount: finalAmount,
                 doctorName,
                 specialty: mappedSpecialty,
                 appointmentDate,
@@ -200,21 +272,21 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                 locationAddress: mappedAddress,
                 fromWebsite,
                 whatsappMessage: message,
-                whatsappSent: !dontSendWhatsApp,
+                whatsappSent: sendWhatsApp,
                 status: "AGENDADO",
                 createdBy: createdByUser,
             });
 
-            if (dontSendWhatsApp) {
-                toast.success("Consulta agendada no sistema sem envio de mensagem via WhatsApp.");
+            if (!sendWhatsApp) {
+                toast.success("Consulta agendada no sistema sem envio de mensagem.");
             } else {
-                // 2. Copy message to clipboard
+                // Copy message to clipboard
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     await navigator.clipboard.writeText(message);
                 }
 
-                // 3. Prepare formatted phone number for uTalk API (+55...)
-                let toPhone = clean;
+                // Prepare phone for uTalk (+55...)
+                let toPhone = cleanPhone;
                 if (toPhone.length === 10 || toPhone.length === 11) {
                     toPhone = "+55" + toPhone;
                 } else if (toPhone.startsWith("55") && toPhone.length >= 12) {
@@ -223,7 +295,7 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                     toPhone = "+" + toPhone;
                 }
 
-                // 4. Send message directly via uTalk API (same system used in consultations confirmation)
+                // Send via uTalk API
                 let utalkSuccess = false;
                 try {
                     const utalkRes = await fetch("/api/utalk/send", {
@@ -232,15 +304,14 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                         body: JSON.stringify({
                             toPhone,
                             message,
-                            contactName: patientName.trim(),
+                            contactName: trimmedPatientName,
                             doctorName,
                         }),
-
                     });
 
                     if (utalkRes.ok) {
                         utalkSuccess = true;
-                        toast.success("Consulta agendada! Mensagem enviada via uTalk (WhatsApp) e copiada para a área de transferência.");
+                        toast.success("Consulta agendada! Mensagem enviada via WhatsApp e copiada para a área de transferência.");
                     } else {
                         const errData = await utalkRes.json().catch(() => ({}));
                         toast.warning(`Agendado e copiado! Erro uTalk (${errData.error || "Erro de API"}). Abrindo WhatsApp Web...`);
@@ -252,18 +323,21 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
 
                 // Fallback: Open WhatsApp Deep Link if uTalk fails
                 if (!utalkSuccess) {
-                    const deepLink = buildWhatsAppDeepLink(clean, message);
+                    const deepLink = buildWhatsAppDeepLink(cleanPhone, message);
                     window.open(deepLink, "_blank", "noopener,noreferrer");
                 }
             }
 
-            // Reset patient input fields for next entry
+            // Reset form fields
             setPatientName("");
             setPatientPhone("");
             setInsurance("");
             setPlan("");
-            setDontSendWhatsApp(false);
+            setAmount("");
+            setAppointmentType("Convênio");
             setShowSuggestions(false);
+            setIsConfirmModalOpen(false);
+            setPendingAppointment(null);
 
             if (onAppointmentCreated) {
                 onAppointmentCreated(newAppointment);
@@ -276,303 +350,460 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
         }
     };
 
-
     return (
-        <Card className="w-full max-w-xl mx-auto shadow-sm border border-slate-200 bg-white dark:bg-slate-900">
-            <CardHeader className="pb-4">
-                <CardTitle className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    Agendamento de Consulta
-                </CardTitle>
-                <CardDescription className="text-slate-500 dark:text-slate-400 text-sm">
-                    Preencha os dados da consulta para gravar o agendamento, copiar a mensagem formatada e enviar via WhatsApp.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Nome do Paciente */}
-                    <div className="space-y-1.5 relative">
-                        <Label htmlFor="patientName" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                            Nome do Paciente <span className="text-red-500">*</span>
-                        </Label>
-                        <div className="relative">
-                            <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                            <Input
-                                id="patientName"
-                                type="text"
-                                value={patientName}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    setPatientName(val);
-                                    setShowSuggestions(true);
-                                    const match = availablePatients.find(
-                                        (p) => p.name.toLowerCase() === val.trim().toLowerCase()
-                                    );
-                                    if (match) {
-                                        if (match.phone) setPatientPhone(formatPhone(match.phone));
-                                        if (match.insurance) setInsurance(match.insurance);
-                                        if (match.plan) setPlan(match.plan);
-                                    }
-                                }}
-                                onFocus={() => setShowSuggestions(true)}
-                                onBlur={() => {
-                                    setTimeout(() => setShowSuggestions(false), 200);
-                                    if (patientName.trim()) {
+        <>
+            <Card className="w-full max-w-xl mx-auto shadow-sm border border-slate-200 bg-white dark:bg-slate-900">
+                <CardHeader className="pb-4">
+                    <CardTitle className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        Agendamento de Consulta
+                    </CardTitle>
+                    <CardDescription className="text-slate-500 dark:text-slate-400 text-sm">
+                        Preencha os dados da consulta para visualizar a mensagem formatada e confirmar o agendamento.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        {/* Toggle: Paciente veio do site? */}
+                        <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40">
+                            <div className="space-y-0.5">
+                                <Label htmlFor="fromWebsite" className="text-sm font-semibold text-slate-800 dark:text-slate-200 cursor-pointer">
+                                    Paciente veio do site?
+                                </Label>
+                            </div>
+                            <Switch
+                                id="fromWebsite"
+                                checked={fromWebsite}
+                                onChange={(e) => setFromWebsite(e.target.checked)}
+                            />
+                        </div>
+
+                        {/* Nome do Paciente */}
+                        <div className="space-y-1.5 relative">
+                            <Label htmlFor="patientName" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                Nome do Paciente <span className="text-red-500">*</span>
+                            </Label>
+                            <div className="relative">
+                                <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                                <Input
+                                    id="patientName"
+                                    type="text"
+                                    value={patientName}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        setPatientName(val);
+                                        setShowSuggestions(true);
                                         const match = availablePatients.find(
-                                            (p) => p.name.toLowerCase() === patientName.trim().toLowerCase()
+                                            (p) => p.name.toLowerCase() === val.trim().toLowerCase()
                                         );
                                         if (match) {
                                             if (match.phone) setPatientPhone(formatPhone(match.phone));
                                             if (match.insurance) setInsurance(match.insurance);
                                             if (match.plan) setPlan(match.plan);
                                         }
-                                    }
-                                }}
-                                placeholder="Digite o nome do paciente..."
-                                className="pl-9 bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100"
-                                required
-                                autoComplete="off"
-                            />
+                                    }}
+                                    onFocus={() => setShowSuggestions(true)}
+                                    onBlur={() => {
+                                        setTimeout(() => setShowSuggestions(false), 200);
+                                        if (patientName.trim()) {
+                                            const match = availablePatients.find(
+                                                (p) => p.name.toLowerCase() === patientName.trim().toLowerCase()
+                                            );
+                                            if (match) {
+                                                if (match.phone) setPatientPhone(formatPhone(match.phone));
+                                                if (match.insurance) setInsurance(match.insurance);
+                                                if (match.plan) setPlan(match.plan);
+                                            }
+                                        }
+                                    }}
+                                    placeholder="Digite o nome do paciente..."
+                                    className="pl-9 bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100"
+                                    required
+                                    autoComplete="off"
+                                />
+                            </div>
+
+                            {/* Autocomplete Suggestions Dropdown */}
+                            {showSuggestions && filteredPatients.length > 0 && (
+                                <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-48 overflow-y-auto py-1">
+                                    {filteredPatients.map((p) => (
+                                        <button
+                                            key={p.id}
+                                            type="button"
+                                            className="w-full text-left px-3 py-2 text-xs hover:bg-blue-50 dark:hover:bg-slate-700 flex justify-between items-center transition-colors cursor-pointer border-b last:border-0 border-slate-100 dark:border-slate-700/50"
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
+                                                setPatientName(p.name);
+                                                if (p.phone) setPatientPhone(formatPhone(p.phone));
+                                                if (p.insurance) setInsurance(p.insurance);
+                                                if (p.plan) setPlan(p.plan);
+                                                setShowSuggestions(false);
+                                            }}
+                                        >
+                                            <span className="font-semibold text-slate-800 dark:text-slate-200">{toTitleCase(p.name)}</span>
+                                            <span className="text-slate-400 text-[11px]">{formatPhone(p.phone)}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
-                        {/* Autocomplete Suggestions Dropdown */}
-                        {showSuggestions && filteredPatients.length > 0 && (
-                            <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-48 overflow-y-auto py-1">
-                                {filteredPatients.map((p) => (
-                                    <button
-                                        key={p.id}
-                                        type="button"
-                                        className="w-full text-left px-3 py-2 text-xs hover:bg-blue-50 dark:hover:bg-slate-700 flex justify-between items-center transition-colors cursor-pointer border-b last:border-0 border-slate-100 dark:border-slate-700/50"
-                                        onMouseDown={(e) => {
-                                            e.preventDefault();
-                                            setPatientName(p.name);
-                                            if (p.phone) setPatientPhone(formatPhone(p.phone));
-                                            if (p.insurance) setInsurance(p.insurance);
-                                            if (p.plan) setPlan(p.plan);
-                                            setShowSuggestions(false);
-                                        }}
-                                    >
-                                        <span className="font-semibold text-slate-800 dark:text-slate-200">{p.name}</span>
-                                        <span className="text-slate-400 text-[11px]">{formatPhone(p.phone)}</span>
-                                    </button>
-                                ))}
+                        {/* Telefone / WhatsApp */}
+                        <div className="space-y-1.5">
+                            <Label htmlFor="patientPhone" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                Telefone / WhatsApp <span className="text-red-500">*</span>
+                            </Label>
+                            <div className="relative">
+                                <Phone className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                                <Input
+                                    id="patientPhone"
+                                    type="text"
+                                    value={patientPhone}
+                                    onChange={handlePhoneChange}
+                                    placeholder="(31) 98765-4321"
+                                    className="pl-9 bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        {/* Tipo de Consulta (Convênio vs Particular) */}
+                        <div className="space-y-1.5">
+                            <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                Tipo de Consulta <span className="text-red-500">*</span>
+                            </Label>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setAppointmentType("Convênio");
+                                        if (insurance === "Particular") setInsurance("");
+                                    }}
+                                    className={`py-2 px-4 rounded-xl text-sm font-semibold border transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                                        appointmentType === "Convênio"
+                                            ? "bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-950/60 dark:border-blue-500 dark:text-blue-300 shadow-xs"
+                                            : "bg-slate-50/50 border-slate-200 text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400"
+                                    }`}
+                                >
+                                    <span>🏥</span> Convênio
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setAppointmentType("Particular");
+                                        setInsurance("Particular");
+                                        setPlan("");
+                                    }}
+                                    className={`py-2 px-4 rounded-xl text-sm font-semibold border transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                                        appointmentType === "Particular"
+                                            ? "bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-950/60 dark:border-blue-500 dark:text-blue-300 shadow-xs"
+                                            : "bg-slate-50/50 border-slate-200 text-slate-600 hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400"
+                                    }`}
+                                >
+                                    <span>💵</span> Particular
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Exibição Condicional: Convênio & Plano vs Valor da Consulta */}
+                        {appointmentType === "Convênio" ? (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="insurance" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                        Convênio
+                                    </Label>
+                                    <div className="relative">
+                                        <FileText className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                                        <Input
+                                            id="insurance"
+                                            type="text"
+                                            value={insurance}
+                                            onChange={(e) => setInsurance(e.target.value)}
+                                            placeholder="Ex: Unimed"
+                                            className="pl-9 bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="plan" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                        Plano
+                                    </Label>
+                                    <div className="relative">
+                                        <FileText className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                                        <Input
+                                            id="plan"
+                                            type="text"
+                                            value={plan}
+                                            onChange={(e) => setPlan(e.target.value)}
+                                            placeholder="Ex: Especial / Unifácil"
+                                            className="pl-9 bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-1.5">
+                                <Label htmlFor="amount" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                    Valor da Consulta (R$) <span className="text-red-500">*</span>
+                                </Label>
+                                <div className="relative">
+                                    <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                                    <Input
+                                        id="amount"
+                                        type="text"
+                                        value={amount}
+                                        onChange={(e) => setAmount(e.target.value)}
+                                        placeholder="Ex: 350,00"
+                                        required={appointmentType === "Particular"}
+                                        className="pl-9 bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100"
+                                    />
+                                </div>
+                                {appointmentType === "Particular" && !amount.trim() && (
+                                    <p className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                                        * Informe o valor da consulta para habilitar o agendamento.
+                                    </p>
+                                )}
                             </div>
                         )}
-                    </div>
 
+                        {/* Médico */}
+                        <div className="space-y-1.5">
+                            <Label htmlFor="doctorName" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                Médico <span className="text-red-500">*</span>
+                            </Label>
+                            <Select value={doctorName} onValueChange={setDoctorName}>
+                                <SelectTrigger className="bg-slate-50/50 dark:bg-slate-800 border-slate-200 text-slate-900 dark:text-slate-100">
+                                    <SelectValue placeholder="Selecione o médico" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {doctorOptions.map((doc) => (
+                                        <SelectItem key={doc} value={doc}>
+                                            {doc}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
 
-                    {/* Telefone / WhatsApp */}
-                    <div className="space-y-1.5">
-                        <Label htmlFor="patientPhone" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                            Telefone / WhatsApp <span className="text-red-500">*</span>
-                        </Label>
-                        <div className="relative">
-                            <Phone className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                        {/* Especialidade (Automático) */}
+                        <div className="space-y-1.5">
+                            <Label htmlFor="specialty" className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                                Especialidade (Automático)
+                            </Label>
                             <Input
-                                id="patientPhone"
+                                id="specialty"
                                 type="text"
-                                value={patientPhone}
-                                onChange={handlePhoneChange}
-                                placeholder="(31) 98765-4321"
-                                className="pl-9 bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100"
-                                required
+                                value={mappedSpecialty}
+                                disabled
+                                className="bg-slate-100 dark:bg-slate-800/60 border-slate-200 text-slate-500 dark:text-slate-400 cursor-not-allowed font-normal"
                             />
                         </div>
-                    </div>
 
-                    {/* Convênio & Plano */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Data */}
                         <div className="space-y-1.5">
-                            <Label htmlFor="insurance" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                                Convênio
+                            <Label htmlFor="appointmentDate" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                Data (Clique no Calendário 🗓️) <span className="text-red-500">*</span>
                             </Label>
                             <div className="relative">
-                                <FileText className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                                 <Input
-                                    id="insurance"
-                                    type="text"
-                                    value={insurance}
-                                    onChange={(e) => setInsurance(e.target.value)}
-                                    placeholder="Ex: Unimed"
-                                    className="pl-9 bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100"
+                                    id="appointmentDate"
+                                    type="date"
+                                    value={appointmentDate}
+                                    onChange={(e) => setAppointmentDate(e.target.value)}
+                                    className="bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100 pr-10"
+                                    required
                                 />
                             </div>
                         </div>
 
+                        {/* Horário */}
                         <div className="space-y-1.5">
-                            <Label htmlFor="plan" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                                Plano
+                            <Label htmlFor="appointmentTime" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                Horário <span className="text-red-500">*</span>
                             </Label>
                             <div className="relative">
-                                <FileText className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                                 <Input
-                                    id="plan"
-                                    type="text"
-                                    value={plan}
-                                    onChange={(e) => setPlan(e.target.value)}
-                                    placeholder="Ex: Especial / Unifácil"
-                                    className="pl-9 bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100"
+                                    id="appointmentTime"
+                                    type="time"
+                                    value={appointmentTime}
+                                    onChange={(e) => setAppointmentTime(e.target.value)}
+                                    className="bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100 pr-10"
+                                    required
                                 />
                             </div>
                         </div>
-                    </div>
 
+                        {/* Local de Atendimento */}
+                        <div className="space-y-1.5">
+                            <Label htmlFor="locationName" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                Local de Atendimento <span className="text-red-500">*</span>
+                            </Label>
+                            <Select value={locationName} onValueChange={setLocationName}>
+                                <SelectTrigger className="bg-slate-50/50 dark:bg-slate-800 border-slate-200 text-slate-900 dark:text-slate-100">
+                                    <SelectValue placeholder="Selecione o local" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {LOCATIONS_MAPPING.map((loc) => (
+                                        <SelectItem key={loc.name} value={loc.name}>
+                                            {loc.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
 
-                    {/* Médico */}
-                    <div className="space-y-1.5">
-                        <Label htmlFor="doctorName" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                            Médico <span className="text-red-500">*</span>
-                        </Label>
-                        <Select value={doctorName} onValueChange={setDoctorName}>
-                            <SelectTrigger className="bg-slate-50/50 dark:bg-slate-800 border-slate-200 text-slate-900 dark:text-slate-100">
-                                <SelectValue placeholder="Selecione o médico" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {doctorOptions.map((doc) => (
-                                    <SelectItem key={doc} value={doc}>
-                                        {doc}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {/* Especialidade (Automático) */}
-                    <div className="space-y-1.5">
-                        <Label htmlFor="specialty" className="text-sm font-medium text-slate-500 dark:text-slate-400">
-                            Especialidade (Automático)
-                        </Label>
-                        <Input
-                            id="specialty"
-                            type="text"
-                            value={mappedSpecialty}
-                            disabled
-                            className="bg-slate-100 dark:bg-slate-800/60 border-slate-200 text-slate-500 dark:text-slate-400 cursor-not-allowed font-normal"
-                        />
-                    </div>
-
-                    {/* Data (Clique no Calendário 🗓️) */}
-                    <div className="space-y-1.5">
-                        <Label htmlFor="appointmentDate" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                            Data (Clique no Calendário 🗓️) <span className="text-red-500">*</span>
-                        </Label>
-                        <div className="relative">
-                            <Input
-                                id="appointmentDate"
-                                type="date"
-                                value={appointmentDate}
-                                onChange={(e) => setAppointmentDate(e.target.value)}
-                                className="bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100 pr-10"
-                                required
-                            />
+                            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 pt-1 px-0.5">
+                                <span className="text-red-500 text-sm">📍</span>
+                                <span>{mappedAddress}</span>
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Horário */}
-                    <div className="space-y-1.5">
-                        <Label htmlFor="appointmentTime" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                            Horário <span className="text-red-500">*</span>
-                        </Label>
-                        <div className="relative">
-                            <Input
-                                id="appointmentTime"
-                                type="time"
-                                value={appointmentTime}
-                                onChange={(e) => setAppointmentTime(e.target.value)}
-                                className="bg-slate-50/50 dark:bg-slate-800 border-slate-200 focus:bg-white text-slate-900 dark:text-slate-100 pr-10"
-                                required
-                            />
-                        </div>
-                    </div>
+                        {/* Preview de Data por Extenso */}
+                        {previewExtendedDate && (
+                            <div className="p-2.5 rounded-md bg-blue-50/60 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900 text-xs text-blue-800 dark:text-blue-300 flex items-start gap-2">
+                                <CalendarIcon className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                                <div>
+                                    <span className="font-medium">Formato da Mensagem:</span> {previewExtendedDate}
+                                </div>
+                            </div>
+                        )}
 
-                    {/* Local de Atendimento */}
-                    <div className="space-y-1.5">
-                        <Label htmlFor="locationName" className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                            Local de Atendimento <span className="text-red-500">*</span>
-                        </Label>
-                        <Select value={locationName} onValueChange={setLocationName}>
-                            <SelectTrigger className="bg-slate-50/50 dark:bg-slate-800 border-slate-200 text-slate-900 dark:text-slate-100">
-                                <SelectValue placeholder="Selecione o local" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {LOCATIONS_MAPPING.map((loc) => (
-                                    <SelectItem key={loc.name} value={loc.name}>
-                                        {loc.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        {/* Botão de Agendar Consulta */}
+                        <Button
+                            type="submit"
+                            disabled={appointmentType === "Particular" && !amount.trim()}
+                            className={`w-full font-medium py-3 h-12 rounded-xl text-base shadow-sm transition-all duration-200 flex items-center justify-center gap-2 ${
+                                appointmentType === "Particular" && !amount.trim()
+                                    ? "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300 dark:border-slate-700"
+                                    : "bg-blue-600 hover:bg-blue-700 text-white cursor-pointer active:scale-[0.99]"
+                            }`}
+                        >
+                            <span className="text-lg">📋</span>
+                            Agendar Consulta
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
 
-                        {/* Endereço Mapeado com Ícone 📍 */}
-                        <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 pt-1 px-0.5">
-                            <span className="text-red-500 text-sm">📍</span>
-                            <span>{mappedAddress}</span>
-                        </div>
-                    </div>
+            {/* Modal de Pré-visualização da Mensagem e Confirmação */}
+            <Dialog open={isConfirmModalOpen} onOpenChange={setIsConfirmModalOpen}>
+                <DialogContent className="sm:max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                            <MessageSquare className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                            Pré-visualização do Agendamento
+                        </DialogTitle>
+                        <DialogDescription className="text-xs text-slate-500 dark:text-slate-400">
+                            Confira os dados e o texto da mensagem antes de salvar o agendamento no sistema.
+                        </DialogDescription>
+                    </DialogHeader>
 
-                    {/* Preview de Data por Extenso */}
-                    {previewExtendedDate && (
-                        <div className="p-2.5 rounded-md bg-blue-50/60 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900 text-xs text-blue-800 dark:text-blue-300 flex items-start gap-2">
-                            <CalendarIcon className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-                            <div>
-                                <span className="font-medium">Formato da Mensagem:</span> {previewExtendedDate}
+                    {pendingAppointment && (
+                        <div className="space-y-4 py-2">
+                            {/* Resumo do Agendamento */}
+                            <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 text-xs space-y-1">
+                                <div className="font-semibold text-slate-800 dark:text-slate-200">
+                                    👤 Paciente: {pendingAppointment.trimmedPatientName} ({formatPhone(pendingAppointment.cleanPhone)})
+                                </div>
+                                <div className="text-slate-600 dark:text-slate-400">
+                                    ⚕️ Médico: {doctorName} • {mappedSpecialty}
+                                </div>
+                                <div className="text-slate-600 dark:text-slate-400">
+                                    📅 {pendingAppointment.fullDatetimeString}
+                                </div>
+                                <div className="text-slate-600 dark:text-slate-400">
+                                    🏥 {locationName} - {mappedAddress}
+                                </div>
+                            </div>
+
+                            {/* Mensagem Formatada WhatsApp */}
+                            <div className="space-y-1.5">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                                        <span>💬 Mensagem a ser exibida/enviada:</span>
+                                    </Label>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={handleCopyModalMessage}
+                                        className="h-7 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 gap-1 px-2"
+                                    >
+                                        {copiedMessage ? (
+                                            <>
+                                                <Check className="h-3.5 w-3.5 text-emerald-600" />
+                                                Copiado!
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Copy className="h-3.5 w-3.5" />
+                                                Copiar texto
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
+                                <div className="p-3.5 rounded-xl bg-slate-900 text-slate-100 font-sans text-xs whitespace-pre-wrap leading-relaxed max-h-52 overflow-y-auto border border-slate-800 shadow-inner">
+                                    {pendingAppointment.message}
+                                </div>
                             </div>
                         </div>
                     )}
 
-                    {/* Toggle: Paciente veio do site? */}
-                    <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/40">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="fromWebsite" className="text-sm font-semibold text-slate-800 dark:text-slate-200 cursor-pointer">
-                                Paciente veio do site?
-                            </Label>
+                    <DialogFooter className="flex flex-col gap-2 sm:flex-col sm:space-x-0 pt-2">
+                        {/* Opção 1: Enviar Mensagem e Salvar */}
+                        <Button
+                            type="button"
+                            disabled={isSubmitting}
+                            onClick={() => handleSaveAppointment(true)}
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 h-11 rounded-xl text-sm shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Processando...
+                                </>
+                            ) : (
+                                <>
+                                    <Send className="h-4 w-4" />
+                                    Enviar mensagem e Salvar registro
+                                </>
+                            )}
+                        </Button>
 
-                        </div>
-                        <Switch
-                            id="fromWebsite"
-                            checked={fromWebsite}
-                            onChange={(e) => setFromWebsite(e.target.checked)}
-                        />
-                    </div>
+                        {/* Opção 2: Não Enviar Mensagem e Salvar */}
+                        <Button
+                            type="button"
+                            disabled={isSubmitting}
+                            variant="outline"
+                            onClick={() => handleSaveAppointment(false)}
+                            className="w-full border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium py-2.5 h-11 rounded-xl text-sm flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Processando...
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="h-4 w-4" />
+                                    Não enviar mensagem e Salvar registro
+                                </>
+                            )}
+                        </Button>
 
-                    {/* Toggle: Não enviar mensagem por WhatsApp */}
-                    <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/40">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="dontSendWhatsApp" className="text-sm font-semibold text-slate-800 dark:text-slate-200 cursor-pointer">
-                                Não enviar mensagem pelo WhatsApp
-                            </Label>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                                Grava o agendamento no sistema sem disparar a mensagem no WhatsApp
-                            </p>
-                        </div>
-                        <Switch
-                            id="dontSendWhatsApp"
-                            checked={dontSendWhatsApp}
-                            onChange={(e) => setDontSendWhatsApp(e.target.checked)}
-                        />
-                    </div>
-
-
-                    {/* Botão de Agendar e Copiar Mensagem */}
-                    <Button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 h-12 rounded-xl text-base shadow-sm transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99]"
-                    >
-                        {isSubmitting ? (
-                            <>
-                                <Loader2 className="h-5 w-5 animate-spin" />
-                                Processing...
-                            </>
-                        ) : (
-                            <>
-                                <span className="text-lg">📋</span>
-                                Confirmar Agendamento
-                            </>
-                        )}
-                    </Button>
-                </form>
-            </CardContent>
-        </Card>
+                        {/* Opção 3: Cancelar / Voltar */}
+                        <Button
+                            type="button"
+                            disabled={isSubmitting}
+                            variant="ghost"
+                            onClick={() => setIsConfirmModalOpen(false)}
+                            className="w-full text-slate-500 hover:text-slate-700 text-xs py-1.5 h-8 cursor-pointer"
+                        >
+                            Voltar e Editar
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }
