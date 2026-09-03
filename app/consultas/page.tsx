@@ -1234,7 +1234,12 @@ Posso confirmar sua presença?`;
                                                 .sort((a, b) => a.time.localeCompare(b.time))
                                                 .map((patient) => (
                                                     <TableRow key={patient.id}>
-                                                        <TableCell className="font-medium">{patient.time}</TableCell>
+                                                        <TableCell className="font-medium">
+                                                            <div className="flex flex-col">
+                                                                <span>{patient.time}</span>
+                                                                <span className="text-xs text-muted-foreground">{formatHistoryDate(patient.date)}</span>
+                                                            </div>
+                                                        </TableCell>
                                                         <TableCell>
                                                             <div className="flex flex-col">
                                                                 <span>{toTitleCase(patient.patientName)}</span>
