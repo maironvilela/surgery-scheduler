@@ -10,11 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { MessageSquare, Copy, Trash2, Calendar, Search, RefreshCw, UserCheck, XCircle, FileText, Plus } from "lucide-react";
+import { MessageSquare, Copy, Trash2, Calendar, Search, RefreshCw, UserCheck, XCircle } from "lucide-react";
 import { toast } from "sonner";
-import { buildWhatsAppDeepLink } from "@/lib/scheduling-utils";
 import { formatPhone, toTitleCase } from "@/lib/utils";
 import { useSession } from "next-auth/react";
+import { AGENDAMENTO_PAGE_CONFIG, AGENDAMENTO_TABS, AGENDAMENTO_TABLE_CONFIG } from "./data";
 
 function formatCreatedDate(isoStr?: string) {
     if (!isoStr) return "-";
@@ -183,33 +183,30 @@ export default function AgendamentoPage() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b pb-4">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-                        Agendamento de Consultas
+                        {AGENDAMENTO_PAGE_CONFIG.title}
                     </h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        Cadastre agendamentos, gere mensagens formatadas e acompanhe o histórico de agendamentos.
+                        {AGENDAMENTO_PAGE_CONFIG.description}
                     </p>
                 </div>
                 <Button variant="outline" size="sm" onClick={loadAppointments} className="self-start md:self-auto gap-2">
                     <RefreshCw className="h-4 w-4" />
-                    Atualizar Lista
+                    {AGENDAMENTO_PAGE_CONFIG.refreshButtonText}
                 </Button>
             </div>
 
             {/* Abas da Página Centralizadas */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 w-full flex flex-col items-center">
                 <TabsList className="grid w-full max-w-[600px] grid-cols-2 rounded-xl p-1 bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 shadow-sm h-12">
-                    <TabsTrigger
-                        value="agendamento"
-                        className="rounded-lg text-sm font-medium transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-md"
-                    >
-                        Agendamento
-                    </TabsTrigger>
-                    <TabsTrigger
-                        value="todos"
-                        className="rounded-lg text-sm font-medium transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-md"
-                    >
-                        Todos os Agendamentos
-                    </TabsTrigger>
+                    {AGENDAMENTO_TABS.map((tab) => (
+                        <TabsTrigger
+                            key={tab.value}
+                            value={tab.value}
+                            className="rounded-lg text-sm font-medium transition-all data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:text-primary data-[state=active]:shadow-md"
+                        >
+                            {tab.label}
+                        </TabsTrigger>
+                    ))}
                 </TabsList>
 
                 {/* Aba 1: Formulário de Agendamento */}
@@ -225,10 +222,10 @@ export default function AgendamentoPage() {
                                 <div>
                                     <CardTitle className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                                         <Calendar className="h-5 w-5 text-blue-600" />
-                                        Agendamentos Cadastrados ({filteredAppointments.length})
+                                        {AGENDAMENTO_TABLE_CONFIG.cardTitle} ({filteredAppointments.length})
                                     </CardTitle>
                                     <CardDescription className="text-xs text-slate-500">
-                                        Histórico completo de agendamentos gravados no sistema.
+                                        {AGENDAMENTO_TABLE_CONFIG.cardDescription}
                                     </CardDescription>
                                 </div>
                             </div>
@@ -238,7 +235,7 @@ export default function AgendamentoPage() {
                                 <div className="relative">
                                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
                                     <Input
-                                        placeholder="Buscar por paciente, tel, atendente..."
+                                        placeholder={AGENDAMENTO_TABLE_CONFIG.searchPlaceholder}
                                         value={searchName}
                                         onChange={(e) => setSearchName(e.target.value)}
                                         className="pl-8 text-xs h-9 bg-slate-50 dark:bg-slate-800"
@@ -256,23 +253,24 @@ export default function AgendamentoPage() {
 
                         <CardContent className="p-0">
                             {isLoading ? (
-                                <div className="p-8 text-center text-sm text-slate-500">Carregando agendamentos...</div>
+                                <div className="p-8 text-center text-sm text-slate-500">{AGENDAMENTO_TABLE_CONFIG.loadingText}</div>
                             ) : filteredAppointments.length === 0 ? (
                                 <div className="p-8 text-center text-sm text-slate-500">
-                                    Nenhum agendamento encontrado.
+                                    {AGENDAMENTO_TABLE_CONFIG.emptyText}
                                 </div>
                             ) : (
                                 <div className="overflow-x-auto">
                                     <Table>
                                         <TableHeader>
                                             <TableRow className="bg-slate-50 dark:bg-slate-800/50">
-                                                <TableHead className="text-xs">Paciente</TableHead>
-                                                <TableHead className="text-xs">Telefone</TableHead>
-                                                <TableHead className="text-xs">Médico & Local</TableHead>
-                                                <TableHead className="text-xs">Data da Consulta</TableHead>
-                                                <TableHead className="text-xs">Realizado em</TableHead>
-                                                <TableHead className="text-xs">Usuário Responsável</TableHead>
-                                                <TableHead className="text-xs text-right">Ações</TableHead>
+                                                {AGENDAMENTO_TABLE_CONFIG.headers.map((header, idx) => (
+                                                    <TableHead
+                                                        key={header}
+                                                        className={`text-xs ${idx === AGENDAMENTO_TABLE_CONFIG.headers.length - 1 ? "text-right" : ""}`}
+                                                    >
+                                                        {header}
+                                                    </TableHead>
+                                                ))}
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>

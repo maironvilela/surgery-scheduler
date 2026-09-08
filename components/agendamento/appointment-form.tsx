@@ -26,6 +26,7 @@ import { useDoctors } from "@/context/doctor-context";
 import { usePatients } from "@/context/patient-context";
 import { useSession } from "next-auth/react";
 import { Appointment } from "@/types";
+import { PATIENT_SOURCES, DOCTOR_PRICES } from "@/app/agendamento/data";
 
 interface AppointmentFormProps {
     onAppointmentCreated?: (appointment: Appointment) => void;
@@ -395,62 +396,32 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                                 Origem do Agendamento / Paciente
                             </Label>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setPatientSource("Paciente");
-                                        setFromWebsite(false);
-                                    }}
-                                    className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                                        patientSource === "Paciente" || !patientSource
-                                            ? "bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 shadow-xs font-bold"
-                                            : "bg-transparent border-transparent text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-                                    }`}
-                                >
-                                    <span>👤</span> Paciente
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setPatientSource("Site");
-                                        setFromWebsite(true);
-                                    }}
-                                    className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                                        patientSource === "Site" || fromWebsite
-                                            ? "bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-950/60 dark:border-blue-500 dark:text-blue-300 shadow-xs font-bold"
-                                            : "bg-transparent border-transparent text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-                                    }`}
-                                >
-                                    <span>🌐</span> Veio do Site
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setPatientSource("Doctoralia");
-                                        setFromWebsite(false);
-                                    }}
-                                    className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                                        patientSource === "Doctoralia"
-                                            ? "bg-teal-50 border-teal-500 text-teal-700 dark:bg-teal-950/60 dark:border-teal-500 dark:text-teal-300 shadow-xs font-bold"
-                                            : "bg-transparent border-transparent text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-                                    }`}
-                                >
-                                    <span>🩺</span> Doctoralia
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setPatientSource("Instagram");
-                                        setFromWebsite(false);
-                                    }}
-                                    className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                                        patientSource === "Instagram"
-                                            ? "bg-pink-50 border-pink-500 text-pink-700 dark:bg-pink-950/60 dark:border-pink-500 dark:text-pink-300 shadow-xs font-bold"
-                                            : "bg-transparent border-transparent text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-                                    }`}
-                                >
-                                    <span>📸</span> Instagram
-                                </button>
+                                {PATIENT_SOURCES.map((source) => {
+                                    const isSelected =
+                                        source.id === "Paciente"
+                                            ? patientSource === "Paciente" || !patientSource
+                                            : source.id === "Site"
+                                            ? patientSource === "Site" || fromWebsite
+                                            : patientSource === source.id;
+
+                                    return (
+                                        <button
+                                            key={source.id}
+                                            type="button"
+                                            onClick={() => {
+                                                setPatientSource(source.id);
+                                                setFromWebsite(source.id === "Site");
+                                            }}
+                                            className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                                isSelected
+                                                    ? source.buttonColorClass
+                                                    : "bg-transparent border-transparent text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                            }`}
+                                        >
+                                            <span>{source.icon}</span> {source.label}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
 
@@ -640,128 +611,28 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                                                 </div>
 
                                                 <div className="space-y-2.5 text-slate-700 dark:text-slate-300 max-h-72 overflow-y-auto pr-1">
-                                                    {/* Dr. Jader */}
-                                                    <div>
-                                                        <span className="font-semibold text-slate-900 dark:text-slate-100 block text-[12px]">Dr. Jader</span>
-                                                        <div className="pl-2 space-y-0.5 text-[11px] mt-0.5">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setAmount("650,00")}
-                                                                className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
-                                                            >
-                                                                <span>• Presencial</span>
-                                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 650,00</span>
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setAmount("800,00")}
-                                                                className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
-                                                            >
-                                                                <span>• On-line</span>
-                                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 800,00</span>
-                                                            </button>
+                                                    {DOCTOR_PRICES.map((group) => (
+                                                        <div key={group.doctor}>
+                                                            <span className="font-semibold text-slate-900 dark:text-slate-100 block text-[12px]">
+                                                                {group.doctor}
+                                                            </span>
+                                                            <div className="pl-2 space-y-0.5 text-[11px] mt-0.5">
+                                                                {group.prices.map((item, idx) => (
+                                                                    <button
+                                                                        key={`${group.doctor}-${item.label}-${idx}`}
+                                                                        type="button"
+                                                                        onClick={() => setAmount(item.amount)}
+                                                                        className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
+                                                                    >
+                                                                        <span>• {item.label}</span>
+                                                                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                                                                            R$ {item.amount}
+                                                                        </span>
+                                                                    </button>
+                                                                ))}
+                                                            </div>
                                                         </div>
-                                                    </div>
-
-                                                    {/* Dr. Sávio */}
-                                                    <div>
-                                                        <span className="font-semibold text-slate-900 dark:text-slate-100 block text-[12px]">Dr. Sávio</span>
-                                                        <div className="pl-2 space-y-0.5 text-[11px] mt-0.5">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setAmount("850,00")}
-                                                                className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
-                                                            >
-                                                                <span>• Presencial</span>
-                                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 850,00</span>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Dra. Iara */}
-                                                    <div>
-                                                        <span className="font-semibold text-slate-900 dark:text-slate-100 block text-[12px]">Dra. Iara</span>
-                                                        <div className="pl-2 space-y-0.5 text-[11px] mt-0.5">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setAmount("600,00")}
-                                                                className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
-                                                            >
-                                                                <span>• 1º Consulta</span>
-                                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 600,00</span>
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setAmount("450,00")}
-                                                                className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
-                                                            >
-                                                                <span>• Para pacientes</span>
-                                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 450,00</span>
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setAmount("350,00")}
-                                                                className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
-                                                            >
-                                                                <span>• Paciente SUS</span>
-                                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 350,00</span>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Dr. Tiago */}
-                                                    <div>
-                                                        <span className="font-semibold text-slate-900 dark:text-slate-100 block text-[12px]">Dr. Tiago</span>
-                                                        <div className="pl-2 space-y-0.5 text-[11px] mt-0.5">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setAmount("600,00")}
-                                                                className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
-                                                            >
-                                                                <span>• Presencial</span>
-                                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 600,00</span>
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setAmount("600,00")}
-                                                                className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
-                                                            >
-                                                                <span>• On-line</span>
-                                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 600,00</span>
-                                                            </button>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Dr. Rômulo */}
-                                                    <div>
-                                                        <span className="font-semibold text-slate-900 dark:text-slate-100 block text-[12px]">Dr. Rômulo</span>
-                                                        <div className="pl-2 space-y-0.5 text-[11px] mt-0.5">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setAmount("350,00")}
-                                                                className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
-                                                            >
-                                                                <span>• Numai</span>
-                                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 350,00</span>
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setAmount("350,00")}
-                                                                className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
-                                                            >
-                                                                <span>• Centra</span>
-                                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 350,00</span>
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setAmount("550,00")}
-                                                                className="w-full text-left flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-800 p-1 rounded transition-colors cursor-pointer"
-                                                            >
-                                                                <span>• Biocor</span>
-                                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">R$ 550,00</span>
-                                                            </button>
-                                                        </div>
-                                                    </div>
+                                                    ))}
                                                 </div>
 
                                                 <p className="text-[10px] text-slate-400 dark:text-slate-500 pt-1 border-t text-center italic">

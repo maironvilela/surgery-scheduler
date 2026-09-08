@@ -82,7 +82,8 @@ Ao selecionar o consultório, o endereço completo é carregado e exibido automa
 8. **Clínica Clinorto** -> `Av. Contorno, 5057 - Serra - BH/MG`
 9. **Clínica Elcenter Barreiro** -> `Rua Alcindo Vieira, 305 - Barreiro - Belo Horizonte/MG`
 10. **CEOFE - Contagem** -> `Av. José Faria da Rocha, 4458 - Eldorado, Contagem/MG`
-11. **Biocor - Rede D'Or** -> `R. da Paisagem, 290 - Vila da Serra, Nova Lima/MG`
+11. **Biocor - Rede D'Or** -> `Alameda Oscar Niemeyer, 217 2ª andar - Vila da Serra, Nova Lima - MG, `
+12. **Edifício Imprensa** -> `Avenida Augusto de Lima, 407 Sala 507, Lourdes - Belo Horizonte/MG`
 
 ---
 
@@ -107,4 +108,4 @@ Olá, [Nome do Paciente]! Seguem os detalhes do seu atendimento:
 🏥 Local: [Local de Atendimento] 
 📍 Endereço: [Endereço Mapeado]
 
-Ficamos muito felizes em poder cuidar de você! Qualquer dúvida sobre o trajeto ou documentação, estamos à disposição por aqui. 💙😊
+Ficamos muito felizes em poder cuidar de você! Qualquer dúvida estamos à disposição por aqui. 💙😊

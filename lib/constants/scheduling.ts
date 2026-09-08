@@ -112,6 +112,10 @@ export const LOCATIONS_MAPPING: LocationMapping[] = [
     },
     {
         name: "Biocor - Rede D'Or",
-        address: "R. da Paisagem, 290 - Vila da Serra, Nova Lima/MG"
-    }
+        address: " Alameda Oscar Niemeyer, 217, 2ª andar - Vila da Serra, Nova Lima - MG, "
+    },
+    {
+        name: "Edifício Imprensa",
+        address: "Avenida Augusto de Lima, 407 Sala 507, Lourdes -Belo Horizonte/MG"
+    },
 ];
