@@ -16,7 +16,8 @@ export const authConfig = {
             const isLoggedIn = !!auth?.user;
             const isPublicPath =
                 nextUrl.pathname.startsWith("/login") ||
-                nextUrl.pathname.startsWith("/api/auth");
+                nextUrl.pathname.startsWith("/api/auth") ||
+                nextUrl.pathname.startsWith("/api/utalk");
 
             if (isPublicPath) {
                 return true;

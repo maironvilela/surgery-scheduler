@@ -1,3 +1,12 @@
+/**
+ * lib/prisma.ts
+ *
+ * Exporta o cliente Prisma correto conforme o ambiente:
+ *  - PREVIEW=true  →  SQLite in-memory (banco local temporário, sem tocar em produção)
+ *  - padrão        →  PostgreSQL (banco de produção)
+ */
+
+import 'dotenv/config'
 import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { Pool } from 'pg'
@@ -8,11 +17,13 @@ declare global {
 }
 
 function createPrismaClient() {
-    const connectionString =
-        process.env.DATABASE_URL ||
-        'postgresql://postgres:daya@880702@34.23.28.141:5432/agenda?schema=public'
-
-    const pool = new Pool({ connectionString })
+    const connectionString = process.env.DATABASE_URL
+    const pool = new Pool({
+        connectionString,
+        max: 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 5000,
+    })
     const adapter = new PrismaPg(pool)
     return new PrismaClient({ adapter })
 }

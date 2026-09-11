@@ -638,6 +638,8 @@ Posso confirmar sua presença?`;
             rawPhone = "+" + rawPhone;
         }
 
+        const doctorName = doctors.find(d => d.id === patientToMessage.doctorId)?.name || selectedDoctor?.name || '';
+
         setIsSending(true);
         try {
             const response = await fetch("/api/utalk/send", {
@@ -648,7 +650,8 @@ Posso confirmar sua presença?`;
                 body: JSON.stringify({
                     toPhone: rawPhone,
                     message: whatsAppMessage,
-                    contactName: patientToMessage.patientName
+                    contactName: patientToMessage.patientName,
+                    doctorName: doctorName,
                 })
             });
 

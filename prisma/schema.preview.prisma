@@ -1,0 +1,194 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Doctor {
+  id        String   @id @default(cuid())
+  crm       String   @unique
+  name      String
+  specialty String
+  photoUrl  String?
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  consultations Consultation[]
+}
+
+model Hospital {
+  id             String   @id @default(cuid())
+  name           String
+  cep            String
+  street         String
+  number         String
+  complement     String?
+  neighborhood   String
+  city           String
+  state          String
+  referencePoint String?
+  createdAt      DateTime @default(now())
+
+  contacts      HospitalContact[]
+  consultations Consultation[]
+}
+
+model HospitalContact {
+  id         String   @id @default(cuid())
+  type       String
+  value      String
+  label      String?
+  isPrimary  Boolean  @default(false)
+  hospitalId String
+  hospital   Hospital @relation(fields: [hospitalId], references: [id], onDelete: Cascade)
+}
+
+model Patient {
+  id           String   @id @default(cuid())
+  name         String
+  insurance    String?
+  plan         String?
+  birthDate    String?
+  gender       String   @default("other")
+  cep          String?
+  street       String?
+  number       String?
+  complement   String?
+  neighborhood String?
+  city         String?
+  state        String?
+  phone        String?
+  email        String?
+  createdAt    DateTime @default(now())
+
+  consultations Consultation[]
+}
+
+model Consultation {
+  id           String   @id @default(cuid())
+  patientName  String
+  phone        String?
+  status       String   @default("Pendente")
+  time         String
+  whatsappSent Boolean  @default(false)
+  isArchived   Boolean  @default(false)
+  date         DateTime @default(now())
+  insurance    String?
+  plan         String?
+  observations String?
+
+  doctorId   String?
+  doctor     Doctor?   @relation(fields: [doctorId], references: [id])
+  hospitalId String?
+  hospital   Hospital? @relation(fields: [hospitalId], references: [id])
+  patientId  String?
+  patient    Patient?  @relation(fields: [patientId], references: [id])
+}
+
+model Surgery {
+  id           String   @id @default(cuid())
+  patientId    String
+  patientName  String
+  doctorId     String
+  doctorName   String
+  hospitalId   String
+  hospitalName String
+  procedure    String
+  date         String
+  startTime    String
+  endTime      String
+  room         String
+  status       String   @default("scheduled")
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  comments Comment[]
+}
+
+model Comment {
+  id        String  @id @default(cuid())
+  user      String
+  date      String
+  content   String
+  surgeryId String
+  surgery   Surgery @relation(fields: [surgeryId], references: [id], onDelete: Cascade)
+}
+
+model Procedure {
+  id                       String   @id @default(cuid())
+  code                     String   @unique
+  name                     String
+  specialty                String
+  fastingTime              String
+  estimatedDuration        String
+  anesthesiaType           String
+  equipment                String
+  materials                String
+  bloodRequirement         String
+  teamSize                 String
+  recoveryTimePACU         String
+  recoveryTimeICU          String
+  hospitalizationTime      String
+  homeRecoveryTime         String
+  suggestedCertificateTime String
+  consentForm              Boolean  @default(false)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  reports ProcedureReport[]
+}
+
+model ProcedureReport {
+  id          String    @id @default(cuid())
+  user        String
+  avatar      String?
+  content     String
+  date        String
+  procedureId String
+  procedure   Procedure @relation(fields: [procedureId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id                 String   @id @default(cuid())
+  email              String   @unique
+  name               String
+  passwordHash       String
+  role               String   @default("user")
+  mustChangePassword Boolean  @default(true)
+  createdAt          DateTime @default(now())
+}
+
+model Appointment {
+  id                 String   @id @default(cuid())
+  patientName        String   @map("patient_name")
+  patientPhone       String   @map("patient_phone")
+  insurance          String?  @map("insurance")
+  plan               String?  @map("plan")
+  appointmentType    String?  @default("Convênio") @map("appointment_type")
+  amount             String?  @map("amount")
+  doctorName         String   @map("doctor_name")
+  specialty          String
+  appointmentDate    String   @map("appointment_date")
+  appointmentTime    String   @map("appointment_time")
+  fullDatetimeString String   @map("full_datetime_string")
+  locationName       String   @map("location_name")
+  locationAddress    String   @map("location_address")
+  fromWebsite        Boolean  @default(false) @map("from_website")
+  patientSource      String?  @map("patient_source")
+  whatsappMessage    String   @map("whatsapp_message")
+  whatsappSent       Boolean  @default(false) @map("whatsapp_sent")
+  status             String   @default("AGENDADO")
+  createdBy          String?  @default("Atendente") @map("created_by")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@index([patientPhone])
+  @@index([appointmentDate])
+  @@index([doctorName])
+  @@map("appointments")
+}

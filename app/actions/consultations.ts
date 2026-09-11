@@ -1,6 +1,6 @@
 "use server";
 
-import prisma from "@/lib/prisma";
+import prisma from "@/lib/db";
 import { ConsultationItem } from "@/types";
 import { revalidatePath } from "next/cache";
 import { realtimeManager } from "@/lib/realtime";

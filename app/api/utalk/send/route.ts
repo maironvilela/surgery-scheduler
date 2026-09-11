@@ -7,7 +7,7 @@ const DEFAULT_UTALK_ORG_ID = "aUPnlGY0VXoPxraR";
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { toPhone, message, contactName, doctorName, fromPhone } = body;
+        const { toPhone, message, contactName, doctorName, fromPhone, tagId: customTagId } = body;
 
         if (!toPhone || !message) {
             return NextResponse.json({ error: 'Telefone e mensagem são obrigatórios' }, { status: 400 });
@@ -46,7 +46,47 @@ export async function POST(request: Request) {
         }
 
         const data = await response.json();
-        return NextResponse.json({ success: true, data });
+        // Extract chat ID from uTalk simplified message response
+        const chatId = data?.chatId || data?.chat?.id || data?.chat;
+        // ID da Tag de confirmação de consulta no uTalk (padrão: UTALK_TAG_CONFIRMAR_CONSULTA)
+        const TAG_ID = customTagId || process.env.UTALK_TAG_CONFIRMAR_CONSULTA || process.env.UTALK_TAG_CONSULTA_AGENDADA || "apCBYzdOOoCHceOO";
+        let tagged = false;
+
+        if (chatId) {
+            try {
+                // Adicionar tag ao chat no uTalk
+                const tagRes = await fetch(`https://app-utalk.umbler.com/api/v1/chats/${chatId}/tags/?organizationId=${utalkOrgId}`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${utalkToken}`
+                    },
+                    body: JSON.stringify({
+                        tagId: TAG_ID,
+                        organizationId: utalkOrgId
+                    })
+                });
+
+                if (tagRes.ok) {
+                    tagged = true;
+                    console.log(`[uTalk] ✅ Tag ${TAG_ID} ("CONSULTA AGENDADA") adicionada com sucesso ao chat ${chatId}`);
+                } else {
+                    const tagErr = await tagRes.json().catch(() => ({}));
+                    if (tagErr?.errors?.TagId?.some((msg: string) => msg.includes("já contém essa tag"))) {
+                        tagged = true;
+                        console.log(`[uTalk] ℹ️ Chat ${chatId} já possuía a tag ${TAG_ID}`);
+                    } else {
+                        console.warn(`[uTalk] ⚠️ Aviso ao adicionar tag ao chat ${chatId}:`, JSON.stringify(tagErr));
+                    }
+                }
+            } catch (tagException: any) {
+                console.error("[uTalk] Erro ao chamar API de adição de tag:", tagException);
+            }
+        } else {
+            console.warn("[uTalk] Resposta da API de mensagem não retornou chatId:", data);
+        }
+
+        return NextResponse.json({ success: true, data, tagged });
 
     } catch (error) {
         console.error("Internal Server Error:", error);
