@@ -652,6 +652,8 @@ Posso confirmar sua presença?`;
                     message: whatsAppMessage,
                     contactName: patientToMessage.patientName,
                     doctorName: doctorName,
+                    tagType: "confirmar",
+                    source: "consultas"
                 })
             });
 
@@ -964,7 +966,7 @@ Posso confirmar sua presença?`;
         <div className="  mx-auto p-6 space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex flex-col gap-2">
-                    <h1 className="text-3xl font-bold tracking-tight text-primary">Agendamento de Consultas</h1>
+                    <h1 className="text-3xl font-bold tracking-tight text-primary">Confirmar Agenda</h1>
                     <p className="text-muted-foreground">Gerencie a lista de consultas e confirmações via WhatsApp.</p>
                 </div>
                 <Link href="/agendamento">

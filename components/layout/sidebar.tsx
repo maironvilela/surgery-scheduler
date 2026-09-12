@@ -20,7 +20,7 @@ import {
 const navItems = [
     { href: "/", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
     { href: "/agendamento", label: "Agendar Consulta", icon: CalendarPlus, adminOnly: false },
-    { href: "/consultas", label: "Consultas", icon: MessageCircle, adminOnly: false },
+    { href: "/consultas", label: "Confirmar Agenda", icon: MessageCircle, adminOnly: false },
     { href: "/pacientes", label: "Pacientes", icon: Users, adminOnly: false },
     { href: "/medicos", label: "Médicos", icon: Stethoscope, adminOnly: false },
     { href: "/hospitais", label: "Hospitais", icon: Building2, adminOnly: false },

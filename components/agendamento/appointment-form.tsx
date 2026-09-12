@@ -330,6 +330,8 @@ export function AppointmentForm({ onAppointmentCreated }: AppointmentFormProps) 
                             message,
                             contactName: trimmedPatientName,
                             doctorName,
+                            tagType: "agendamento",
+                            source: "agendamento"
                         }),
                     });
 

@@ -14,7 +14,7 @@ async function testAgendamentoUTalk() {
     const testDoctor = 'Dr. Jader de Andrade';
     const doctorTagId = getDoctorTagId(testDoctor);
     const doctorPhone = getDoctorSenderPhone(testDoctor);
-    const chatTagId = process.env.UTALK_TAG_CONFIRMAR_CONSULTA || process.env.UTALK_TAG_CONFIRMAR || 'apCBYzdOOoCHceOO';
+    const chatTagId = process.env.UTALK_TAG_CONSULTA_AGENDADA || 'amziMtlTmvFsImeM';
 
     console.log('1. Verificando Mapeamento dos Dados de Agendamento:');
     console.log('   - Médico selecionado:', testDoctor);

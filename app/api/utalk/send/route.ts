@@ -7,7 +7,7 @@ const DEFAULT_UTALK_ORG_ID = "aUPnlGY0VXoPxraR";
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { toPhone, message, contactName, doctorName, fromPhone, tagId: customTagId } = body;
+        const { toPhone, message, contactName, doctorName, fromPhone, tagId: customTagId, tagType, source } = body;
 
         if (!toPhone || !message) {
             return NextResponse.json({ error: 'Telefone e mensagem são obrigatórios' }, { status: 400 });
@@ -49,8 +49,16 @@ export async function POST(request: Request) {
         const chatId = data?.chatId || data?.chat?.id || data?.chat;
         const contactId = data?.contactId || data?.contact?.id || data?.chat?.contactId || data?.chat?.contact;
 
-        // ID da Tag de confirmação de consulta no uTalk (padrão: UTALK_TAG_CONFIRMAR_CONSULTA / EE2DD9391D2C44568064)
-        const CHAT_TAG_ID = customTagId || process.env.UTALK_TAG_CONFIRMAR_CONSULTA || process.env.UTALK_TAG_CONFIRMAR || "apCBYzdOOoCHceOO";
+        // Seleção de Tag conforme origem:
+        //  - /consultas (tagType === 'confirmar')  →  UTALK_TAG_CONFIRMAR_CONSULTA ("apCBYzdOOoCHceOO")
+        //  - /agendamento (padrão)                 →  UTALK_TAG_CONSULTA_AGENDADA ("amziMtlTmvFsImeM")
+        const isConfirmarTag = tagType === "confirmar" || tagType === "consultas" || source === "consultas" || source === "/consultas";
+
+        const CHAT_TAG_ID = customTagId || (
+            isConfirmarTag
+                ? (process.env.UTALK_TAG_CONFIRMAR_CONSULTA || process.env.UTALK_TAG_CONFIRMAR || "apCBYzdOOoCHceOO")
+                : (process.env.UTALK_TAG_CONSULTA_AGENDADA || "amziMtlTmvFsImeM")
+        );
         let taggedChat = false;
         let taggedContact = false;
 

@@ -105,7 +105,7 @@ ${doctorLabel}: ${doctorName}
 🏥 Local: ${locationName}
 📍 Endereço: ${locationAddress}${amountLine}
 
-Ficamos muito felizes em poder cuidar de você! Qualquer dúvida sobre o trajeto ou documentação, estamos à disposição por aqui. 💙😊`;
+Ficamos muito felizes em poder cuidar de você! Qualquer dúvida estamos à disposição por aqui. 💙😊`;
 
     return { fullDatetimeString, message };
 }
