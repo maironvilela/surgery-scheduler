@@ -9,6 +9,7 @@
     "postinstall": "prisma generate",
     "start": "next start -p 4000",
     "lint": "eslint",
+    "test:utalk": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' scripts/test-agendamento-utalk.ts",
     "seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts"
   },
   "prisma": {

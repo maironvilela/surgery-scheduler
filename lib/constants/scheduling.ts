@@ -68,6 +68,32 @@ export function getDoctorSenderPhone(doctorName: string): string {
     return process.env.UTALK_FROM_PHONE || "+5531971041077=";
 }
 
+export function getDoctorTagId(doctorName: string): string | null {
+    if (!doctorName) return null;
+    const nameLower = doctorName.toLowerCase();
+
+    if (nameLower.includes("ana")) {
+        return process.env.UTALK_TAG_MEDICO_ANA || "aVKOK5gT-sE5vHvr";
+    }
+    if (nameLower.includes("iara")) {
+        return process.env.UTALK_TAG_MEDICO_IARA || "aUWxEmY0VXoPHJiP";
+    }
+    if (nameLower.includes("jader")) {
+        return process.env.UTALK_TAG_MEDICO_JADER || "aUW6ePkLIBV31Dja";
+    }
+    if (nameLower.includes("rômulo") || nameLower.includes("romulo")) {
+        return process.env.UTALK_TAG_MEDICO_ROMULO || "aVKOIfRSeqn2qIKi";
+    }
+    if (nameLower.includes("sávio") || nameLower.includes("savio")) {
+        return process.env.UTALK_TAG_MEDICO_SAVIO || "aVKM4rMlwBu9aEZe";
+    }
+    if (nameLower.includes("tiago")) {
+        return process.env.UTALK_TAG_MEDICO_TIAGO || "aUW8rDIB26TfnZEh";
+    }
+
+    return null;
+}
+
 
 export const LOCATIONS_MAPPING: LocationMapping[] = [
     {
