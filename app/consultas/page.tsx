@@ -604,10 +604,10 @@ export default function ConsultasPage() {
             return;
         }
 
-        const doctorName = doctors.find(d => d.id === patient.doctorId)?.name || selectedDoctor?.name || 'Médico';
-        const hospitalName = hospitals.find(h => h.id === patient.hospitalId)?.name || selectedHospital?.name || 'Hospital';
+        const doctorName = (doctors.find(d => d.id === patient.doctorId)?.name || selectedDoctor?.name || 'Médico').trim();
+        const hospitalName = (hospitals.find(h => h.id === patient.hospitalId)?.name || selectedHospital?.name || '').trim();
         const hospitalObj = hospitals.find(h => h.id === patient.hospitalId) || selectedHospital;
-        const hospitalAddress = hospitalObj ? `${hospitalObj.street}, ${hospitalObj.number} - ${hospitalObj.neighborhood || ''}, ${hospitalObj.city}/${hospitalObj.state}` : '';
+        const hospitalAddress = hospitalObj ? `${hospitalObj.street}, ${hospitalObj.number} - ${(hospitalObj.neighborhood || '').trim()}, ${hospitalObj.city}/${hospitalObj.state}`.replace(/\s+/g, ' ').trim() : '';
 
         const message = `Olá, *${toTitleCase(patient.patientName)}*
 
